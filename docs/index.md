@@ -150,6 +150,49 @@ Run `make update-threatintel` and your detection rules are enriched with fresh i
 
 ---
 
+## Fleet Management: Monitor Your Entire Infrastructure
+
+Got more than one server? SIB includes Ansible-based fleet management to deploy security agents across your infrastructure. **No local Ansible installation required** — it runs in Docker.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    SIB Central Server                    │
+│  ┌─────────┐ ┌──────┐ ┌────────────┐ ┌─────────┐       │
+│  │ Grafana │ │ Loki │ │ Prometheus │ │Sidekick │       │
+│  └─────────┘ └──────┘ └────────────┘ └─────────┘       │
+└─────────────────────────▲──────────────▲────────────────┘
+                          │              │
+     ┌────────────────────┼──────────────┼────────────────┐
+     │   Host A           │   Host B     │   Host C       │
+     │ Falco + Alloy ─────┴──────────────┴─── ...         │
+     └────────────────────────────────────────────────────┘
+```
+
+### Deploy to Your Fleet
+
+```bash
+# Configure your hosts
+cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
+# Edit with your servers...
+
+# Test connectivity
+make fleet-ping
+
+# Deploy agents to all hosts
+make deploy-fleet
+
+# Or target specific hosts
+make deploy-fleet LIMIT=webserver
+```
+
+Each fleet host gets:
+- **Falco** — Runtime security detection
+- **Alloy** — Ships logs and metrics to central SIB
+
+All events from all hosts appear in your central Grafana dashboards.
+
+---
+
 ## Try It In 60 Seconds
 
 Don't take my word for it. See it working:
@@ -184,6 +227,12 @@ make demo-quick           # Quick demo (fewer events)
 # Threat Intelligence
 make update-threatintel   # Update IOC feeds
 make convert-sigma        # Convert Sigma rules to Falco
+
+# Fleet Management (no local Ansible needed)
+make deploy-fleet         # Deploy agents to all fleet hosts
+make update-rules         # Push detection rules to fleet
+make fleet-health         # Check health of all agents
+make fleet-ping           # Test SSH connectivity
 
 # Health & Status
 make health               # Quick health check
