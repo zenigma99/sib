@@ -240,33 +240,119 @@ SIDEKICK_UI_PORT=2802
 
 ## 📡 Remote Collectors (Alloy)
 
-Deploy lightweight collectors to remote hosts to ship logs and metrics to SIB.
+SIB uses **Grafana Alloy** as a unified telemetry collector for remote hosts. Deploy lightweight collectors to ship logs and metrics to your central SIB server.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Hub and Spoke Model                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                   │
+│  │   Host A     │    │   Host B     │    │   Host C     │                   │
+│  │   (Alloy)    │    │   (Alloy)    │    │   (Alloy)    │                   │
+│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘                   │
+│         │                   │                   │                            │
+│         │     Logs (Loki Push)  +  Metrics (Remote Write)                   │
+│         │                   │                   │                            │
+│         └───────────────────┼───────────────────┘                            │
+│                             ▼                                                │
+│                   ┌──────────────────┐                                       │
+│                   │    SIB Server    │                                       │
+│                   │  ┌────────────┐  │                                       │
+│                   │  │    Loki    │  │  ◀── Logs with host labels           │
+│                   │  └────────────┘  │                                       │
+│                   │  ┌────────────┐  │                                       │
+│                   │  │ Prometheus │  │  ◀── Node metrics                    │
+│                   │  └────────────┘  │                                       │
+│                   │  ┌────────────┐  │                                       │
+│                   │  │  Grafana   │  │  ◀── Fleet Overview dashboard        │
+│                   │  └────────────┘  │                                       │
+│                   └──────────────────┘                                       │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### Enable Remote Mode
 
+On the SIB server, enable external access for collectors:
+
 ```bash
-# On SIB server - enable external access for collectors
 make enable-remote
 ```
 
-### Deploy Collector
+This exposes Loki (3100) and Prometheus (9090) externally. Ensure your firewall is configured appropriately.
+
+### Deploy Collector to Remote Host
 
 ```bash
-# Deploy Alloy to a remote host
+# Using the Makefile (recommended)
 make deploy-collector HOST=user@remote-host
 
-# Or manually
+# Or using the deploy script directly
 ./collectors/scripts/deploy.sh user@192.168.1.50 192.168.1.163
 ```
 
+The deploy script will:
+1. Copy Alloy configuration to the remote host
+2. Configure the SIB server address
+3. Start Alloy via Docker Compose
+4. Verify the deployment
+
 ### What Gets Collected
 
-| Type | Sources |
-|------|---------|
-| **Logs** | syslog, auth.log, journal, Docker containers |
-| **Metrics** | CPU, memory, disk, network |
+| Type | Sources | Labels |
+|------|---------|--------|
+| **System Logs** | `/var/log/syslog`, `/var/log/messages` | `job="syslog"` |
+| **Auth Logs** | `/var/log/auth.log`, `/var/log/secure` | `job="auth"` |
+| **Kernel Logs** | `/var/log/kern.log` | `job="kernel"` |
+| **Journal** | systemd journal | `job="journal"` |
+| **Docker Logs** | All containers | `job="docker"`, `container=...` |
+| **Node Metrics** | CPU, memory, disk, network | `job="node"`, `collector="alloy"` |
 
-Check the **Fleet Overview** dashboard in Grafana to see all connected hosts.
+All data is tagged with:
+- `host` - hostname of the remote machine
+- `collector="alloy"` - identifies data from Alloy collectors
+
+### Manual Deployment
+
+If you prefer manual deployment:
+
+```bash
+# On the remote host
+mkdir -p ~/sib-collector/config
+
+# Copy and edit the config
+scp collectors/config/config.alloy user@remote:~/sib-collector/config/
+# Edit config.alloy - replace SIB_SERVER_IP with your SIB server IP
+
+scp collectors/compose.yaml user@remote:~/sib-collector/
+
+# Start the collector
+ssh user@remote "cd ~/sib-collector && HOSTNAME=\$(hostname) docker compose up -d"
+```
+
+### Verify Collector is Working
+
+```bash
+# Check Alloy logs on remote host
+ssh user@remote "docker logs sib-alloy --tail 20"
+
+# Query Loki for collector data
+curl -s "http://localhost:3100/loki/api/v1/label/host/values"
+
+# Check metrics in Prometheus
+curl -s 'http://localhost:9090/api/v1/query?query=node_uname_info{collector="alloy"}'
+```
+
+### Fleet Overview Dashboard
+
+The **Fleet Overview** dashboard in Grafana shows:
+- Number of active hosts with collectors
+- CPU, memory, disk utilization per host
+- Network traffic graphs
+- Log volume by host
 
 ## 🐛 Troubleshooting
 
