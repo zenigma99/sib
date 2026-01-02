@@ -36,7 +36,10 @@ help: ## Show this help message
 	@grep -E '^(health|doctor|logs|logs-falco|logs-sidekick|logs-storage|logs-grafana):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Testing & Demo:$(RESET)"
-	@grep -E '^(test-alert|demo|test-rules):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -E '^(test-alert|demo|demo-quick|test-rules):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(CYAN)Threat Intel & Sigma:$(RESET)"
+	@grep -E '^(update-threatintel|convert-sigma):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Utilities:$(RESET)"
 	@grep -E '^(open|open-ui|info|ps|clean|check-ports|validate):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
@@ -328,30 +331,11 @@ test-alert: ## Generate a test security alert
 	@echo "  • Grafana:          $(YELLOW)http://localhost:3000$(RESET)"
 	@echo ""
 
-demo: ## Run security scenarios demo
-	@echo ""
-	@echo "$(BOLD)🎭 Running Security Demo$(RESET)"
-	@echo ""
-	@echo "$(CYAN)This will generate various security events for demonstration.$(RESET)"
-	@echo ""
-	@echo "$(YELLOW)1. Test alert via Falcosidekick:$(RESET)"
-	@curl -sf -X POST -H "Content-Type: application/json" http://localhost:2801/test >/dev/null 2>&1 && \
-		echo "   $(GREEN)✓$(RESET) Test event sent" || echo "   $(RED)✗$(RESET) Failed"
-	@echo ""
-	@echo "$(YELLOW)2. Simulating suspicious activity in a container:$(RESET)"
-	@docker run --rm alpine sh -c "cat /etc/shadow 2>/dev/null || true" >/dev/null 2>&1 && \
-		echo "   $(GREEN)✓$(RESET) Shadow file access simulated" || echo "   $(YELLOW)!$(RESET) Could not run test container"
-	@echo ""
-	@echo "$(YELLOW)3. Simulating shell spawn:$(RESET)"
-	@docker run --rm alpine sh -c "sh -c 'echo test'" >/dev/null 2>&1 && \
-		echo "   $(GREEN)✓$(RESET) Shell spawn simulated" || echo "   $(YELLOW)!$(RESET) Could not run test container"
-	@echo ""
-	@echo "$(GREEN)Demo complete!$(RESET)"
-	@echo ""
-	@echo "$(CYAN)View events at:$(RESET)"
-	@echo "  • Falcosidekick UI: $(YELLOW)http://localhost:2802$(RESET)"
-	@echo "  • Grafana:          $(YELLOW)http://localhost:3000$(RESET) (Security Overview dashboard)"
-	@echo ""
+demo: ## Run comprehensive security demo (generates ~30 events)
+	@./scripts/demo.sh
+
+demo-quick: ## Run quick security demo (1s delay between events)
+	@./scripts/demo.sh --quick
 
 test-rules: ## Validate Falco rules syntax
 	@echo "$(CYAN)Validating Falco rules...$(RESET)"
@@ -359,6 +343,19 @@ test-rules: ## Validate Falco rules syntax
 		falcosecurity/falco:latest \
 		falco --validate /etc/falco/rules/ 2>&1 | head -20 || true
 	@echo ""
+
+# ==================== Threat Intel & Sigma ====================
+
+update-threatintel: ## Download/update threat intelligence feeds
+	@./threatintel/update-feeds.sh
+
+convert-sigma: ## Convert Sigma rules to Falco format
+	@echo "$(CYAN)Converting Sigma rules...$(RESET)"
+	@python3 ./sigma/sigma2sib.py ./sigma/rules/ -o falco
+	@echo ""
+	@echo "$(GREEN)✓ Converted rules saved to sigma/rules/converted_falco_rules.yaml$(RESET)"
+	@echo "$(CYAN)Copy to Falco with:$(RESET)"
+	@echo "  $(YELLOW)cp sigma/rules/converted_falco_rules.yaml detection/config/rules/$(RESET)"
 
 # ==================== Utilities ====================
 

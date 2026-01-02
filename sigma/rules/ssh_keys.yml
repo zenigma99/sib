@@ -1,0 +1,24 @@
+title: SSH Authorized Keys Modification
+id: sib-ssh-001
+status: experimental
+description: Detects modifications to SSH authorized_keys file
+author: SIB
+date: 2024-01-01
+references:
+    - https://attack.mitre.org/techniques/T1098/
+logsource:
+    category: file_change
+    product: linux
+detection:
+    selection:
+        TargetFilename|endswith:
+            - 'authorized_keys'
+            - 'authorized_keys2'
+    condition: selection
+falsepositives:
+    - Legitimate SSH key management
+level: high
+tags:
+    - attack.persistence
+    - attack.t1098
+    - attack.t1098.004

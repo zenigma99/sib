@@ -1,0 +1,25 @@
+title: Container Escape Attempt via Docker Socket
+id: sib-escape-001
+status: experimental
+description: Detects attempts to access Docker socket from container
+author: SIB
+date: 2024-01-01
+references:
+    - https://attack.mitre.org/techniques/T1611/
+logsource:
+    category: file_access
+    product: linux
+detection:
+    selection:
+        TargetFilename|contains:
+            - '/var/run/docker.sock'
+            - '/run/docker.sock'
+            - '/var/run/containerd/containerd.sock'
+    condition: selection
+falsepositives:
+    - Container management tools
+    - CI/CD pipelines with Docker-in-Docker
+level: critical
+tags:
+    - attack.privilege_escalation
+    - attack.t1611

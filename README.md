@@ -12,7 +12,11 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 - **Alert Forwarding**: Falcosidekick routes alerts to 50+ destinations (Slack, PagerDuty, Loki, etc.)
 - **Log Aggregation**: Loki stores security events with efficient label-based querying
 - **Pre-built Dashboards**: Grafana dashboards for security overview and event exploration
-- **Critical Event Tracking**: Dedicated panel for Critical priority events requiring review
+- **MITRE ATT&CK Coverage**: Dashboard mapping detections to the ATT&CK framework
+- **Demo Mode**: Generate realistic security events to see dashboards in action
+- **Sigma Rules**: Convert Sigma rules to Falco/LogQL format
+- **Threat Intel**: IP blocklists from Abuse.ch, Spamhaus, and more
+- **Remote Collectors**: Ship logs from multiple hosts with Grafana Alloy
 - **One Command Setup**: Get started with `make install`
 
 ## 🏗️ Architecture
@@ -111,6 +115,12 @@ Default Grafana credentials: `admin` / `admin`
 - Event volume by rule
 - Filterable log view with priority and rule filters
 
+### MITRE ATT&CK Coverage
+- Detection events mapped to ATT&CK tactics
+- Visual matrix showing coverage across 12 tactics
+- Events over time by tactic
+- Technique breakdown and priority distribution
+
 ### Fleet Overview
 - Active hosts with collectors
 - CPU, memory, disk usage per host
@@ -135,9 +145,15 @@ make logs                 # Tail all logs
 make logs-falco           # Tail Falco logs
 make logs-sidekick        # Tail Falcosidekick logs
 
-# Testing
+# Demo & Testing
+make demo                 # Run comprehensive security demo (~30 events)
+make demo-quick           # Run quick demo (1s delay)
 make test-alert           # Generate a test security alert
 ./scripts/test-pipeline.sh  # Run full pipeline test
+
+# Threat Intel & Sigma
+make update-threatintel   # Download threat intel feeds
+make convert-sigma        # Convert Sigma rules to Falco
 
 # Utilities
 make open                 # Open Grafana in browser
@@ -353,6 +369,158 @@ The **Fleet Overview** dashboard in Grafana shows:
 - CPU, memory, disk utilization per host
 - Network traffic graphs
 - Log volume by host
+
+## 🎭 Demo Mode
+
+Generate realistic security events for demonstrations, training, or testing your detection capabilities.
+
+```bash
+# Run comprehensive demo (~30 events across 9 MITRE ATT&CK categories)
+make demo
+
+# Quick demo with 1-second delays
+make demo-quick
+```
+
+### Demo Coverage
+
+The demo script generates events across these MITRE ATT&CK categories:
+
+| Tactic | Events Generated |
+|--------|------------------|
+| **Credential Access** | Shadow file access, /etc/passwd reads |
+| **Execution** | Shell spawning, script execution |
+| **Persistence** | Cron job creation, systemd manipulation |
+| **Defense Evasion** | Log clearing, history deletion |
+| **Discovery** | System enumeration, network scanning |
+| **Impact** | Crypto miner detection |
+| **Container Escape** | Docker socket access, namespace breakout |
+| **Lateral Movement** | SSH key access, authorized_keys reads |
+| **File Integrity** | /etc/ file modifications |
+
+Each event triggers corresponding Falco rules and flows through to Grafana in real-time.
+
+## 📐 Sigma Rules Integration
+
+[Sigma](https://sigmahq.io/) is the universal language for security detection rules. SIB includes a converter to translate Sigma rules to Falco rules and LogQL alerts.
+
+```bash
+# Convert all Sigma rules in sigma/rules/
+make convert-sigma
+
+# Convert a specific rule
+./sigma/sigma2sib.py sigma/rules/crypto_mining.yml
+```
+
+### Included Sample Rules
+
+| Rule | Description | MITRE Tactic |
+|------|-------------|--------------|
+| `crypto_mining.yml` | Detects cryptocurrency miners | Impact (T1496) |
+| `shadow_access.yml` | Password file access | Credential Access (T1003) |
+| `ssh_keys.yml` | SSH private key access | Credential Access (T1552) |
+| `reverse_shell.yml` | Reverse shell patterns | Execution (T1059) |
+| `container_escape.yml` | Container breakout attempts | Privilege Escalation (T1611) |
+
+### Adding More Sigma Rules
+
+1. Download rules from the [Sigma community rules repo](https://github.com/SigmaHQ/sigma)
+2. Place `.yml` files in `sigma/rules/`
+3. Run `make convert-sigma`
+4. Copy generated Falco rules to `detection/config/rules/custom_rules.yaml`
+
+## 🎯 MITRE ATT&CK Coverage
+
+SIB includes a MITRE ATT&CK dashboard that maps all detections to the ATT&CK framework, providing visibility into your security coverage.
+
+### Dashboard Features
+
+- **Tactic Coverage**: 12 stat panels showing detection counts for each ATT&CK tactic
+- **Timeline View**: Events over time grouped by tactic
+- **Technique Breakdown**: Table showing most-triggered techniques
+- **Priority Distribution**: Pie chart of event severities
+
+### Covered Tactics
+
+The dashboard tracks events across all ATT&CK tactics:
+
+```
+┌──────────────┬───────────────┬────────────────┬───────────────────┐
+│ Initial      │ Execution     │ Persistence    │ Privilege         │
+│ Access       │               │                │ Escalation        │
+├──────────────┼───────────────┼────────────────┼───────────────────┤
+│ Defense      │ Credential    │ Discovery      │ Lateral           │
+│ Evasion      │ Access        │                │ Movement          │
+├──────────────┼───────────────┼────────────────┼───────────────────┤
+│ Collection   │ Command &     │ Exfiltration   │ Impact            │
+│              │ Control       │                │                   │
+└──────────────┴───────────────┴────────────────┴───────────────────┘
+```
+
+### Viewing the Dashboard
+
+1. Open Grafana at http://localhost:3000
+2. Navigate to **Dashboards** → **MITRE ATT&CK Coverage**
+3. Run `make demo` to generate events across multiple tactics
+
+## 🕵️ Threat Intelligence
+
+SIB can enrich detections with threat intelligence from public IP blocklists.
+
+```bash
+# Download/update threat intel feeds
+make update-threatintel
+```
+
+### Included Feeds
+
+| Source | Feed Type | URL |
+|--------|-----------|-----|
+| **Feodo Tracker** | C&C IPs | abuse.ch |
+| **SSL Blacklist** | SSL abuse IPs | abuse.ch |
+| **Emerging Threats** | Compromised IPs | rules.emergingthreats.net |
+| **Spamhaus DROP** | Spam/DDoS | spamhaus.org |
+| **Blocklist.de** | Attack IPs | blocklist.de |
+| **CINSscore** | Bad reputation | cinsscore.com |
+
+### Generated Files
+
+After running `make update-threatintel`:
+
+```
+threatintel/
+├── feeds/                      # Individual feed downloads
+│   ├── feodo_ipblocklist.txt
+│   ├── sslbl_aggressive.txt
+│   ├── emerging_threats.txt
+│   ├── spamhaus_drop.txt
+│   ├── blocklist_de_ssh.txt
+│   ├── blocklist_de_all.txt
+│   └── cinsscore.txt
+├── combined_blocklist.txt      # Unified blocklist
+├── falco_threatintel_rules.yaml # Generated Falco rules
+└── lookup-ip.sh                # IP lookup utility
+```
+
+### Using Threat Intel
+
+```bash
+# Look up an IP against all feeds
+./threatintel/lookup-ip.sh 1.2.3.4
+
+# Add generated rules to Falco
+cat threatintel/falco_threatintel_rules.yaml >> detection/config/rules/custom_rules.yaml
+make restart
+```
+
+### Automating Updates
+
+Add to crontab to update feeds daily:
+
+```bash
+# Update threat intel every day at 2 AM
+0 2 * * * cd /path/to/sib && make update-threatintel
+```
 
 ## 🐛 Troubleshooting
 

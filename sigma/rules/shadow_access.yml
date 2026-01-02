@@ -1,0 +1,24 @@
+title: Suspicious Shadow File Access
+id: sib-shadow-001
+status: experimental
+description: Detects attempts to read the shadow password file
+author: SIB
+date: 2024-01-01
+references:
+    - https://attack.mitre.org/techniques/T1003/
+logsource:
+    category: file_access
+    product: linux
+detection:
+    selection:
+        TargetFilename|endswith:
+            - '/etc/shadow'
+            - '/etc/gshadow'
+    condition: selection
+falsepositives:
+    - System administration tasks
+    - Legitimate password management
+level: critical
+tags:
+    - attack.credential_access
+    - attack.t1003

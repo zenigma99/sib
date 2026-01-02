@@ -1,0 +1,29 @@
+title: Crypto Mining Process Detection
+id: sib-crypto-001
+status: experimental
+description: Detects known cryptocurrency mining processes
+author: SIB
+date: 2024/01/01
+references:
+    - https://attack.mitre.org/techniques/T1496/
+logsource:
+    category: process_creation
+    product: linux
+detection:
+    selection:
+        Image|endswith:
+            - '/xmrig'
+            - '/minerd'
+            - '/cpuminer'
+            - '/cgminer'
+            - '/bfgminer'
+            - '/ethminer'
+            - '/nbminer'
+            - '/t-rex'
+    condition: selection
+falsepositives:
+    - Legitimate mining operations
+level: critical
+tags:
+    - attack.impact
+    - attack.t1496
