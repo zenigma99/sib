@@ -25,7 +25,7 @@ echo ""
 
 # Create temp config with correct server IP
 TEMP_CONFIG=$(mktemp)
-sed "s/YOUR_SIB_SERVER_IP/$SIB_SERVER/g" "$COLLECTORS_DIR/config/config.alloy" > "$TEMP_CONFIG"
+sed "s/SIB_SERVER_IP/$SIB_SERVER/g" "$COLLECTORS_DIR/config/config.alloy" > "$TEMP_CONFIG"
 
 echo "[1/4] Copying Alloy configuration..."
 ssh "$REMOTE_HOST" "mkdir -p ~/sib-collector/config"
@@ -34,7 +34,7 @@ scp "$COLLECTORS_DIR/compose.yaml" "$REMOTE_HOST:~/sib-collector/"
 rm "$TEMP_CONFIG"
 
 echo "[2/4] Starting Alloy container..."
-ssh "$REMOTE_HOST" "cd ~/sib-collector && docker compose up -d"
+ssh "$REMOTE_HOST" "cd ~/sib-collector && HOSTNAME=\$(hostname) docker compose up -d"
 
 echo "[3/4] Waiting for Alloy to start..."
 sleep 5

@@ -5,6 +5,7 @@ services:
   alloy:
     image: grafana/alloy:latest
     container_name: sib-alloy
+    hostname: ${HOSTNAME:-collector}
     restart: unless-stopped
     command:
       - run
@@ -26,6 +27,7 @@ services:
       - HOST_PROC=/host/proc
       - HOST_SYS=/host/sys
       - HOST_ROOT=/host/root
+      - HOSTNAME=${HOSTNAME:-collector}
     pid: host
     network_mode: host
     privileged: true

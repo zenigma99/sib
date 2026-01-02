@@ -2,26 +2,8 @@
 // Grafana Alloy Configuration for SIB
 // ============================================
 // Collects logs and metrics, ships to central SIB server
-// Edit SIB_SERVER below to point to your SIB instance
+// Replace SIB_SERVER_IP with your SIB server address
 // ============================================
-
-// ============================================
-// CONFIGURATION - EDIT THIS
-// ============================================
-local.file "config" {
-  filename = "/etc/alloy/config.alloy"
-}
-
-// SIB Server Address - CHANGE THIS
-argument "sib_server" {
-  optional = true
-  default  = "YOUR_SIB_SERVER_IP"
-}
-
-argument "hostname" {
-  optional = true
-  default  = env("HOSTNAME")
-}
 
 // ============================================
 // LOGGING - Ship to Loki
@@ -30,8 +12,8 @@ argument "hostname" {
 // System logs - syslog
 local.file_match "syslog" {
   path_targets = [
-    {__path__ = "/var/log/syslog", job = "syslog", host = argument.hostname.value},
-    {__path__ = "/var/log/messages", job = "syslog", host = argument.hostname.value},
+    {__path__ = "/var/log/syslog", job = "syslog"},
+    {__path__ = "/var/log/messages", job = "syslog"},
   ]
 }
 
@@ -43,8 +25,8 @@ loki.source.file "syslog" {
 // Auth logs
 local.file_match "auth" {
   path_targets = [
-    {__path__ = "/var/log/auth.log", job = "auth", host = argument.hostname.value},
-    {__path__ = "/var/log/secure", job = "auth", host = argument.hostname.value},
+    {__path__ = "/var/log/auth.log", job = "auth"},
+    {__path__ = "/var/log/secure", job = "auth"},
   ]
 }
 
@@ -56,7 +38,7 @@ loki.source.file "auth" {
 // Kernel logs
 local.file_match "kern" {
   path_targets = [
-    {__path__ = "/var/log/kern.log", job = "kernel", host = argument.hostname.value},
+    {__path__ = "/var/log/kern.log", job = "kernel"},
   ]
 }
 
@@ -69,8 +51,7 @@ loki.source.file "kern" {
 loki.source.journal "journal" {
   forward_to = [loki.process.default.receiver]
   labels     = {
-    job  = "journal",
-    host = argument.hostname.value,
+    job = "journal",
   }
 }
 
@@ -98,8 +79,7 @@ loki.source.docker "containers" {
   targets    = discovery.relabel.docker.output
   forward_to = [loki.process.default.receiver]
   labels     = {
-    job  = "docker",
-    host = argument.hostname.value,
+    job = "docker",
   }
 }
 
@@ -117,7 +97,10 @@ loki.process "default" {
 // Ship to Loki
 loki.write "default" {
   endpoint {
-    url = "http://" + argument.sib_server.value + ":3100/loki/api/v1/push"
+    url = "http://SIB_SERVER_IP:3100/loki/api/v1/push"
+  }
+  external_labels = {
+    host = env("HOSTNAME"),
   }
 }
 
@@ -150,18 +133,23 @@ prometheus.relabel "node" {
 
   rule {
     target_label = "instance"
-    replacement  = argument.hostname.value
+    replacement  = env("HOSTNAME")
   }
 
   rule {
     target_label = "job"
     replacement  = "node"
   }
+
+  rule {
+    target_label = "collector"
+    replacement  = "alloy"
+  }
 }
 
 // Ship to Prometheus
 prometheus.remote_write "default" {
   endpoint {
-    url = "http://" + argument.sib_server.value + ":9090/api/v1/write"
+    url = "http://SIB_SERVER_IP:9090/api/v1/write"
   }
 }
