@@ -40,11 +40,11 @@ So I did that.
 
 **SIB** is a complete security monitoring stack you can deploy with one command:
 
-\`\`\`bash
+```bash
 git clone https://github.com/matijazezelj/sib.git
 cd sib
 make install
-\`\`\`
+```
 
 That's it. You now have:
 
@@ -125,9 +125,9 @@ I built a converter that transforms Sigma rules into:
 1. **Falco rules** — For runtime detection
 2. **LogQL alerts** — For log-based detection in Loki
 
-\`\`\`bash
+```bash
 make convert-sigma
-\`\`\`
+```
 
 This means you're not locked into my detection logic. The entire Sigma rule ecosystem is available to you.
 
@@ -146,7 +146,7 @@ SIB pulls IOC feeds automatically:
 | **Blocklist.de** | Brute force attackers |
 | **CINSscore** | Threat intelligence scoring |
 
-Run \`make update-threatintel\` and your detection rules are enriched with fresh indicators.
+Run `make update-threatintel` and your detection rules are enriched with fresh indicators.
 
 ---
 
@@ -154,15 +154,15 @@ Run \`make update-threatintel\` and your detection rules are enriched with fresh
 
 Don't take my word for it. See it working:
 
-\`\`\`bash
+```bash
 git clone https://github.com/matijazezelj/sib.git
 cd sib
 cp .env.example .env
 make install
 make demo
-\`\`\`
+```
 
-The \`make demo\` command generates realistic security events across all MITRE ATT&CK categories. Open Grafana at \`http://localhost:3000\`, go to the MITRE dashboard, and watch it light up.
+The `make demo` command generates realistic security events across all MITRE ATT&CK categories. Open Grafana at `http://localhost:3000`, go to the MITRE dashboard, and watch it light up.
 
 You'll see credential access attempts, container escapes, persistence mechanisms, discovery activity — all simulated, all detected, all mapped to the framework.
 
@@ -170,7 +170,7 @@ You'll see credential access attempts, container escapes, persistence mechanisms
 
 ## 🛠️ Commands Reference
 
-\`\`\`bash
+```bash
 # Installation
 make install              # Install all stacks
 make install-detection    # Install Falco + Falcosidekick
@@ -194,7 +194,7 @@ make logs                 # Tail all logs
 make update               # Pull latest images and restart
 make stop                 # Stop all stacks
 make uninstall            # Remove everything
-\`\`\`
+```
 
 ---
 
