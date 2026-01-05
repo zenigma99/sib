@@ -168,6 +168,18 @@ Got more than one server? SIB includes Ansible-based fleet management to deploy 
      └────────────────────────────────────────────────────┘
 ```
 
+### Smart Deployment Strategy
+
+SIB auto-detects your environment and chooses the best deployment method:
+
+| What's on the host | What happens |
+|--------------------|--------------|
+| **Docker installed** | Agents run as containers |
+| **No Docker** | Docker installed from static binaries (no apt/yum needed), then containers |
+| **Force native mode** | Install Falco from repo + Alloy as static binary |
+
+This works on **any Linux distribution** — no package manager access required. The Docker static binary approach means you can deploy to air-gapped systems, minimal containers, or locked-down servers.
+
 ### Deploy to Your Fleet
 
 ```bash
@@ -183,6 +195,9 @@ make deploy-fleet
 
 # Or target specific hosts
 make deploy-fleet LIMIT=webserver
+
+# Force native deployment (no Docker)
+make deploy-fleet ARGS="-e deployment_strategy=native"
 ```
 
 Each fleet host gets:
@@ -232,6 +247,7 @@ make convert-sigma        # Convert Sigma rules to Falco
 make deploy-fleet         # Deploy agents to all fleet hosts
 make update-rules         # Push detection rules to fleet
 make fleet-health         # Check health of all agents
+make fleet-docker-check   # Check/install Docker on fleet
 make fleet-ping           # Test SSH connectivity
 
 # Health & Status

@@ -17,6 +17,8 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 - **Sigma Rules**: Convert Sigma rules to Falco/LogQL format
 - **Threat Intel**: IP blocklists from Abuse.ch, Spamhaus, and more
 - **Remote Collectors**: Ship logs from multiple hosts with Grafana Alloy
+- **Fleet Management**: Dockerized Ansible for deploying agents across infrastructure (no local Ansible needed)
+- **Smart Deployment**: Auto-detects Docker, installs from static binaries if needed — works on any Linux
 - **One Command Setup**: Get started with `make install`
 
 ## 🏗️ Architecture
@@ -369,6 +371,53 @@ The **Fleet Overview** dashboard in Grafana shows:
 - CPU, memory, disk utilization per host
 - Network traffic graphs
 - Log volume by host
+
+## 🚀 Fleet Management with Ansible
+
+For managing multiple hosts at scale, SIB includes a Dockerized Ansible setup. **No local Ansible installation required.**
+
+### Smart Deployment Strategy
+
+SIB auto-detects your environment and chooses the best deployment method:
+
+| Scenario | What happens |
+|----------|--------------|
+| **Docker installed** | Agents run as containers |
+| **No Docker** | Docker installed from static binaries, then containers |
+| **Force native mode** | Install Falco from repo + Alloy as static binary |
+
+This works on **any Linux distribution** — no package manager access required.
+
+### Quick Start
+
+```bash
+# Configure your hosts
+cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
+vim ansible/inventory/hosts.yml  # Add your servers
+
+# Test connectivity
+make fleet-ping
+
+# Deploy to all hosts
+make deploy-fleet
+
+# Or target specific hosts
+make deploy-fleet LIMIT=webserver
+```
+
+### Fleet Commands
+
+| Command | Description |
+|---------|-------------|
+| `make deploy-fleet` | Deploy Falco + Alloy to all fleet hosts |
+| `make update-rules` | Push detection rules to fleet |
+| `make fleet-health` | Check health of all agents |
+| `make fleet-docker-check` | Check/install Docker on fleet hosts |
+| `make fleet-ping` | Test SSH connectivity |
+| `make fleet-shell` | Open shell in Ansible container |
+| `make remove-fleet` | Remove agents from fleet |
+
+See [ansible/README.md](ansible/README.md) for detailed configuration options.
 
 ## 🎭 Demo Mode
 
