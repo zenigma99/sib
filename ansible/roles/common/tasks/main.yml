@@ -85,6 +85,7 @@
       - ca-certificates
       - gnupg
       - iptables
+      - python3-requests
     state: present
   when: ansible_os_family == 'Debian'
   tags: packages

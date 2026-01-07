@@ -15,6 +15,7 @@ loki.source.journal "system" {
     job       = "journal",
     host      = "{{ inventory_hostname }}",
     instance  = "{{ ansible_host }}",
+    collector = "alloy",
 {% if host_labels is defined %}
 {% for key, value in host_labels.items() %}
     {{ key }} = "{{ value }}",
@@ -49,9 +50,10 @@ loki.process "docker" {
   
   stage.static_labels {
     values = {
-      job      = "docker",
-      host     = "{{ inventory_hostname }}",
-      instance = "{{ ansible_host }}",
+      job       = "docker",
+      host      = "{{ inventory_hostname }}",
+      instance  = "{{ ansible_host }}",
+      collector = "alloy",
 {% if host_labels is defined %}
 {% for key, value in host_labels.items() %}
       {{ key }} = "{{ value }}",
@@ -68,8 +70,9 @@ loki.write "sib" {
     url = "{{ sib_loki_url }}/loki/api/v1/push"
   }
   external_labels = {
-    cluster = "sib-fleet",
-    host    = "{{ inventory_hostname }}",
+    cluster   = "sib-fleet",
+    host      = "{{ inventory_hostname }}",
+    collector = "alloy",
   }
 }
 {% endif %}
@@ -82,9 +85,11 @@ loki.write "sib" {
 // Node Exporter metrics (built-in)
 prometheus.exporter.unix "node" {
   set_collectors     = ["cpu", "diskstats", "filesystem", "loadavg", "meminfo", "netdev", "uname"]
+{% if effective_deployment | default('native') | trim == 'docker' %}
   procfs_path        = "/host/proc"
   sysfs_path         = "/host/sys"
   rootfs_path        = "/host"
+{% endif %}
 }
 
 prometheus.scrape "node" {

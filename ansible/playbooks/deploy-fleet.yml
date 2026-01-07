@@ -21,7 +21,7 @@
           Deploying SIB agents to {{ inventory_hostname }}
           SIB Server: {{ sib_server }}
           Falco Version: {{ falco_version }}
-          Deployment Method: {{ falco_deployment }}
+          Deployment Strategy: {{ deployment_strategy }}
       tags: always
 
     - name: Gather facts
@@ -44,10 +44,18 @@
 
   post_tasks:
     - name: Verify Falco is running
-      ansible.builtin.command: "{{ 'docker ps --filter name=falco --format \"{{.Status}}\"' if falco_deployment == 'docker' else 'systemctl is-active falco' }}"
+      ansible.builtin.command: "{{ 'docker ps --filter name=sib-falco --format \"{{.Status}}\"' if effective_deployment | trim == 'docker' else 'systemctl is-active falco' }}"
       register: falco_status
       changed_when: false
       failed_when: false
+      when: not (is_lxc | default(false))
+      tags: verify
+
+    - name: Set Falco status for LXC
+      ansible.builtin.set_fact:
+        falco_status:
+          stdout: "skipped (LXC not supported)"
+      when: is_lxc | default(false)
       tags: verify
 
     - name: Verify Alloy is running

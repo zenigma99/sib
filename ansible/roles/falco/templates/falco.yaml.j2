@@ -1,6 +1,20 @@
 # Falco configuration template
 # Managed by Ansible - do not edit directly
 
+# Load container plugin (required for container.* fields in rules)
+load_plugins:
+  - container
+
+plugins:
+  - name: container
+    library_path: /usr/share/falco/plugins/libcontainer.so
+
+# Rules files to load (plural form for newer Falco versions)
+rules_files:
+  - /etc/falco/falco_rules.yaml
+  - /etc/falco/falco_rules.local.yaml
+  - /etc/falco/rules.d
+
 # Priority filter
 priority: {{ falco_priority }}
 

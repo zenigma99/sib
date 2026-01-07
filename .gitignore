@@ -44,3 +44,4 @@ secrets/
 # Test outputs
 coverage/
 .coverage
+.ansible/

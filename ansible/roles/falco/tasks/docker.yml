@@ -1,28 +1,85 @@
 # Falco Docker deployment
 ---
 
+- name: Create Falco config directory
+  ansible.builtin.file:
+    path: /etc/sib/falco/rules
+    state: directory
+    mode: '0755'
+  tags: falco
+
+- name: Copy Falco configuration
+  ansible.builtin.copy:
+    src: /detection-config/falco.yaml
+    dest: /etc/sib/falco/falco.yaml
+    mode: '0644'
+  tags: falco
+
+- name: Copy Falco rules
+  ansible.builtin.copy:
+    src: /detection-config/rules/
+    dest: /etc/sib/falco/rules/
+    mode: '0644'
+  tags: falco
+
 - name: Pull Falco image
   community.docker.docker_image:
     name: "falcosecurity/falco-no-driver:{{ falco_version }}"
     source: pull
   tags: falco
 
+- name: Check if running in LXC/container
+  ansible.builtin.stat:
+    path: /dev/lxc
+  register: lxc_check
+  tags: falco
+
+- name: Set LXC environment fact
+  ansible.builtin.set_fact:
+    is_lxc: "{{ lxc_check.stat.exists or ansible_virtualization_type == 'lxc' }}"
+  tags: falco
+
+- name: Warning - Falco not supported in LXC
+  ansible.builtin.debug:
+    msg: |
+      WARNING: Falco syscall capture is not supported in LXC containers.
+      LXC containers share the host kernel and don't provide proper eBPF/kernel module support.
+      Falco will be skipped on this host. Consider:
+      - Running Falco on the Proxmox host instead
+      - Using a VM instead of LXC container
+      - Running Falco on physical/VM nodes only
+  when: is_lxc
+  tags: falco
+
+- name: Set Falco driver mode
+  ansible.builtin.set_fact:
+    falco_driver: 'modern-bpf'
+  when: not is_lxc
+  tags: falco
+
+- name: Display Falco driver
+  ansible.builtin.debug:
+    msg: "Using Falco driver: {{ falco_driver }}"
+  when: not is_lxc
+  tags: falco
+
 - name: Check if Falco container exists
   community.docker.docker_container_info:
-    name: falco
+    name: sib-falco
   register: falco_container
+  when: not is_lxc
   tags: falco
 
 - name: Stop existing Falco container
   community.docker.docker_container:
-    name: falco
+    name: sib-falco
     state: absent
-  when: falco_container.exists
+  when: not is_lxc and falco_container.exists
   tags: falco
 
 - name: Run Falco container
   community.docker.docker_container:
-    name: falco
+    name: sib-falco
     image: "falcosecurity/falco-no-driver:{{ falco_version }}"
     state: started
     restart_policy: unless-stopped
@@ -33,7 +90,9 @@
       - /var/run/docker.sock:/host/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - /etc:/host/etc:ro
-      - /etc/falco:/etc/falco:ro
+      - /dev:/host/dev:ro
+      - /etc/sib/falco/falco.yaml:/etc/falco/falco.yaml:ro
+      - /etc/sib/falco/rules:/etc/falco/rules:ro
     env:
       HOST_ROOT: /host
       FALCO_BPF_PROBE: ""
@@ -41,22 +100,19 @@
       /usr/bin/falco
       --modern-bpf
       -pk
-      -o json_output=true
-      -o json_include_output_property=true
-      -o json_include_tags_property=true
-      -o http_output.enabled=true
-      -o http_output.url={{ falco_outputs.http_url }}
-      -o priority={{ falco_priority }}
+  when: not is_lxc
   tags: falco
 
 - name: Wait for Falco to start
   ansible.builtin.wait_for:
     timeout: 10
+  when: not is_lxc
   tags: falco
 
 - name: Verify Falco is running
-  ansible.builtin.command: docker ps --filter name=falco --format "{{ '{{.Status}}' }}"
+  ansible.builtin.command: docker ps --filter name=sib-falco --format "{{ '{{.Status}}' }}"
   register: falco_status
   changed_when: false
   failed_when: "'Up' not in falco_status.stdout"
+  when: not is_lxc
   tags: falco

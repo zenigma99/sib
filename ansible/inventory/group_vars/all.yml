@@ -25,7 +25,7 @@ install_docker_if_missing: true
 # auto   - Detect Docker, use containers if available, native if not
 # docker - Force Docker containers (will install Docker if missing)
 # native - Force native packages (no Docker required)
-deployment_strategy: auto
+deployment_strategy: native
 
 # =============================================================================
 # Falco Configuration

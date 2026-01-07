@@ -58,9 +58,55 @@
   when: ansible_os_family == 'RedHat'
   tags: falco
 
-- name: Enable and start Falco service
+- name: Install Falco container plugin
+  ansible.builtin.command:
+    cmd: falcoctl artifact install container --no-verify
+  args:
+    creates: /usr/share/falco/plugins/libcontainer.so
+  tags: falco
+
+- name: Deploy Falco configuration
+  ansible.builtin.template:
+    src: falco.yaml.j2
+    dest: /etc/falco/falco.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Falco
+  tags: falco
+
+- name: Deploy custom rules
+  ansible.builtin.copy:
+    src: "/detection-config/rules/{{ item }}"
+    dest: "/etc/falco/rules.d/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ falco_custom_rules }}"
+  notify: Restart Falco
+  ignore_errors: true
+  tags: falco
+
+- name: Enable and start Falco service (modern-bpf)
+  ansible.builtin.service:
+    name: falco-modern-bpf
+    state: started
+    enabled: true
+  register: falco_modern_service
+  ignore_errors: true
+  tags: falco
+
+- name: Enable and start Falco service (legacy fallback)
   ansible.builtin.service:
     name: falco
     state: started
     enabled: true
+  when: falco_modern_service is failed
+  tags: falco
+
+- name: Verify Falco is running
+  ansible.builtin.shell: systemctl is-active falco-modern-bpf || systemctl is-active falco
+  register: falco_native_status
+  changed_when: false
+  failed_when: falco_native_status.rc != 0
   tags: falco

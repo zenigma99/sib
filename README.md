@@ -122,12 +122,14 @@ Default Grafana credentials: `admin` / `admin`
 - Visual matrix showing coverage across 12 tactics
 - Events over time by tactic
 - Technique breakdown and priority distribution
+- **Hostname filter** to focus on specific hosts
 
 ### Fleet Overview
 - Active hosts with collectors
 - CPU, memory, disk usage per host
 - Network traffic graphs
 - Log volume by host
+- **Hostname selector** to filter all panels by host
 
 ## 🛠️ Commands
 
@@ -376,17 +378,19 @@ The **Fleet Overview** dashboard in Grafana shows:
 
 For managing multiple hosts at scale, SIB includes a Dockerized Ansible setup. **No local Ansible installation required.**
 
-### Smart Deployment Strategy
+### Deployment Strategy
 
-SIB auto-detects your environment and chooses the best deployment method:
+SIB supports both **native packages** (default) and **Docker containers**:
 
-| Scenario | What happens |
-|----------|--------------|
-| **Docker installed** | Agents run as containers |
-| **No Docker** | Docker installed from static binaries, then containers |
-| **Force native mode** | Install Falco from repo + Alloy as static binary |
+| Strategy | Description |
+|----------|-------------|
+| `native` (default) | Falco from repo + Alloy as systemd service. **Recommended for best visibility.** |
+| `docker` | Run agents as containers |
+| `auto` | Use Docker if available, otherwise native |
 
-This works on **any Linux distribution** — no package manager access required.
+**Why native is recommended:** Native deployment sees all host processes, while Docker-based Falco may miss events from processes outside its container namespace.
+
+> ⚠️ **LXC Limitation:** Falco cannot run in LXC containers due to kernel access restrictions. Use VMs or run Falco on the LXC host itself.
 
 ### Quick Start
 

@@ -189,26 +189,38 @@ This approach works on any Linux distribution without requiring apt/yum/dnf acce
 
 ### Deployment Strategy
 
-SIB automatically detects Docker availability and chooses the best deployment method:
+SIB supports both native package installation and Docker containers. **Native is recommended** for better visibility into all host processes.
 
-| Strategy | Docker Present | Docker Missing |
-|----------|---------------|----------------|
-| `auto` (default) | Use containers | Install Docker, then use containers |
-| `docker` | Use containers | Install Docker, then use containers |
-| `native` | Use native packages | Use native packages |
+| Strategy | Description |
+|----------|-------------|
+| `native` (default) | Install Falco from repo, Alloy as binary with systemd |
+| `docker` | Run Falco and Alloy as containers |
+| `auto` | Use Docker if available, otherwise native |
 
 Configure in `inventory/group_vars/all.yml`:
 
 ```yaml
 # Deployment Strategy
-# auto   - Detect Docker, use containers if available, native if not
-# docker - Force Docker containers (will install Docker if missing)
-# native - Force native packages (no Docker required)
-deployment_strategy: auto
+# native - Native packages (recommended, better process visibility)
+# docker - Docker containers (requires Docker)
+# auto   - Use Docker if available, otherwise native
+deployment_strategy: native
 
 # Install Docker if not present? (only applies when strategy is 'auto' or 'docker')
 install_docker_if_missing: true
 ```
+
+### LXC Container Limitations
+
+**Falco does not work in LXC containers** due to kernel access limitations:
+- LXC containers share the host kernel
+- eBPF/kernel module support is not available
+- Falco will be skipped with a warning on LXC hosts
+
+**Recommendations for LXC:**
+- Run Falco on the Proxmox/LXC host itself
+- Use VMs instead of LXC for full security monitoring
+- Alloy (logs/metrics) still works in LXC
 
 **What happens on deployment:**
 
@@ -248,16 +260,28 @@ make update-rules
 
 ### Check agent status on a host
 ```bash
-ssh user@host "docker ps | grep -E 'falco|alloy'"
+# Native deployment
+ssh user@host "systemctl status falco-modern-bpf alloy"
+
+# Docker deployment
+ssh user@host "docker ps | grep -E 'sib-falco|sib-alloy'"
 ```
 
 ### View Falco logs
 ```bash
-ssh user@host "docker logs falco --tail 100"
+# Native deployment
+ssh user@host "journalctl -u falco-modern-bpf -f"
+
+# Docker deployment  
+ssh user@host "docker logs sib-falco --tail 100"
 ```
 
 ### View Alloy logs
 ```bash
+# Native deployment
+ssh user@host "journalctl -u alloy -f"
+
+# Docker deployment
 ssh user@host "docker logs sib-alloy --tail 100"
 ```
 

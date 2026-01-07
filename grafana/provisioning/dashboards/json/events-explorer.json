@@ -53,7 +53,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (rule) (count_over_time({source=\"syscall\", priority=~\"$priority\", rule=~\"$rule\"} [$__interval]))",
+          "expr": "sum by (rule) (count_over_time({source=\"syscall\", hostname=~\"$hostname\", priority=~\"$priority\", rule=~\"$rule\"} [$__interval]))",
           "legendFormat": "{{rule}}",
           "refId": "A"
         }
@@ -78,7 +78,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "{source=\"syscall\", priority=~\"$priority\", rule=~\"$rule\"}",
+          "expr": "{source=\"syscall\", hostname=~\"$hostname\", priority=~\"$priority\", rule=~\"$rule\"}",
           "refId": "A"
         }
       ],
@@ -91,6 +91,20 @@
   "tags": ["sib", "security", "falco", "events"],
   "templating": {
     "list": [
+      {
+        "allValue": ".*",
+        "current": {"selected": true, "text": "All", "value": "$__all"},
+        "datasource": {"type": "loki", "uid": "loki"},
+        "definition": "label_values({source=\"syscall\"}, hostname)",
+        "includeAll": true,
+        "multi": false,
+        "name": "hostname",
+        "options": [],
+        "query": "label_values({source=\"syscall\"}, hostname)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
       {
         "allValue": ".*",
         "current": {"selected": true, "text": ["All"], "value": ["$__all"]},

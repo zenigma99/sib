@@ -24,7 +24,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "count(count by (host) (count_over_time({job=~\".+\"} [5m])))",
+          "expr": "count(count by (host) (count_over_time({collector=\"alloy\", host=~\"$host\"} [$__range])))",
           "refId": "A"
         }
       ],
@@ -49,7 +49,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "count(up{job=\"node\"})",
+          "expr": "count(count by (host) (node_uname_info{job=~\"node|integrations/unix\"}))",
           "refId": "A"
         }
       ],
@@ -74,7 +74,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({collector=\"alloy\"} [$__range]))",
+          "expr": "sum(count_over_time({collector=\"alloy\", host=~\"$host\"} [$__range]))",
           "refId": "A"
         }
       ],
@@ -135,8 +135,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\",job=\"node\"}[5m])) * 100)",
-          "legendFormat": "{{instance}}",
+          "expr": "100 - (avg by (host) (irate(node_cpu_seconds_total{mode=\"idle\",job=~\"node|integrations/unix\",host=~\"$host\"}[5m])) * 100)",
+          "legendFormat": "{{host}}",
           "refId": "A"
         }
       ],
@@ -172,8 +172,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "(1 - (node_memory_MemAvailable_bytes{job=\"node\"} / node_memory_MemTotal_bytes{job=\"node\"})) * 100",
-          "legendFormat": "{{instance}}",
+          "expr": "(1 - (node_memory_MemAvailable_bytes{job=~\"node|integrations/unix\",host=~\"$host\"} / node_memory_MemTotal_bytes{job=~\"node|integrations/unix\",host=~\"$host\"})) * 100",
+          "legendFormat": "{{host}}",
           "refId": "A"
         }
       ],
@@ -209,7 +209,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (host) (count_over_time({collector=\"alloy\"} [$__interval]))",
+          "expr": "sum by (host) (count_over_time({collector=\"alloy\", host=~\"$host\"} [$__interval]))",
           "legendFormat": "{{host}}",
           "refId": "A"
         }
@@ -246,8 +246,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "100 - ((node_filesystem_avail_bytes{job=\"node\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"node\",fstype!~\"tmpfs|overlay\"}) * 100)",
-          "legendFormat": "{{instance}} - {{mountpoint}}",
+          "expr": "100 - ((node_filesystem_avail_bytes{job=~\"node|integrations/unix\",fstype!~\"tmpfs|overlay\",host=~\"$host\"} / node_filesystem_size_bytes{job=~\"node|integrations/unix\",fstype!~\"tmpfs|overlay\",host=~\"$host\"}) * 100)",
+          "legendFormat": "{{host}} - {{mountpoint}}",
           "refId": "A"
         }
       ],
@@ -283,14 +283,14 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (instance) (rate(node_network_receive_bytes_total{job=\"node\",device!~\"lo|docker.*|br.*|veth.*\"}[5m]))",
-          "legendFormat": "{{instance}} rx",
+          "expr": "sum by (host) (rate(node_network_receive_bytes_total{job=~\"node|integrations/unix\",device!~\"lo|docker.*|br.*|veth.*\",host=~\"$host\"}[5m]))",
+          "legendFormat": "{{host}} rx",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (instance) (rate(node_network_transmit_bytes_total{job=\"node\",device!~\"lo|docker.*|br.*|veth.*\"}[5m]))",
-          "legendFormat": "{{instance}} tx",
+          "expr": "sum by (host) (rate(node_network_transmit_bytes_total{job=~\"node|integrations/unix\",device!~\"lo|docker.*|br.*|veth.*\",host=~\"$host\"}[5m]))",
+          "legendFormat": "{{host}} tx",
           "refId": "B"
         }
       ],

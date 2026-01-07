@@ -2,15 +2,22 @@
 # Falco role handlers
 
 - name: Restart Falco
-  ansible.builtin.service:
-    name: falco
-    state: restarted
-  when: falco_deployment == 'native'
+  ansible.builtin.shell: |
+    if systemctl is-enabled falco-modern-bpf 2>/dev/null; then
+      systemctl restart falco-modern-bpf
+    else
+      systemctl restart falco
+    fi
+  when: 
+    - effective_deployment | default('docker') | trim == 'native'
+    - not (is_lxc | default(false))
 
 - name: Restart Falco Docker
   community.docker.docker_container:
-    name: falco
+    name: sib-falco
     state: started
     restart: true
-  when: falco_deployment == 'docker'
+  when: 
+    - effective_deployment | default('docker') | trim == 'docker'
+    - not (is_lxc | default(false))
   listen: Restart Falco

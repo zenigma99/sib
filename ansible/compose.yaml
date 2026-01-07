@@ -7,8 +7,8 @@ services:
     volumes:
       # Mount ansible directory
       - .:/ansible:ro
-      # Mount detection rules for pushing to fleet
-      - ../detection/config/rules:/ansible/detection/config/rules:ro
+      # Mount detection config for pushing to fleet (falco.yaml + rules)
+      - ../detection/config:/detection-config:ro
       # Mount SSH keys from host
       - ~/.ssh:/root/.ssh:ro
       # Mount SSH agent socket (for macOS/Linux)
@@ -17,5 +17,6 @@ services:
       - SSH_AUTH_SOCK=/ssh-agent
       - ANSIBLE_HOST_KEY_CHECKING=false
       - ANSIBLE_FORCE_COLOR=true
+      - DETECTION_CONFIG_PATH=/detection-config
     working_dir: /ansible
     network_mode: host

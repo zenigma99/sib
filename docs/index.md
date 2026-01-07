@@ -93,19 +93,19 @@ Most security teams I've worked with can't answer that question. They have tools
 
 ### Security Overview
 
-Total events, critical alerts, and real-time event streams organized by priority.
+Total events, critical alerts, and real-time event streams organized by priority. **Filter by hostname** to focus on specific hosts.
 
 ![Security Overview Dashboard](assets/images/security-overview.png)
 
 ### Events Explorer
 
-Filter by priority, rule name, and drill down into specific events with full LogQL support.
+Filter by priority, rule name, hostname, and drill down into specific events with full LogQL support.
 
 ![Events Explorer](assets/images/events-explorer.png)
 
 ### Fleet Overview
 
-Monitor multiple hosts with CPU, memory, disk, and network metrics alongside security events.
+Monitor multiple hosts with CPU, memory, disk, and network metrics. **Hostname selector** filters all panels to focus on individual hosts.
 
 ![Fleet Overview](assets/images/fleet-overview.png)
 
@@ -168,17 +168,19 @@ Got more than one server? SIB includes Ansible-based fleet management to deploy 
      └────────────────────────────────────────────────────┘
 ```
 
-### Smart Deployment Strategy
+### Deployment Strategy
 
-SIB auto-detects your environment and chooses the best deployment method:
+SIB supports both **native packages** (default) and **Docker containers**:
 
-| What's on the host | What happens |
-|--------------------|--------------|
-| **Docker installed** | Agents run as containers |
-| **No Docker** | Docker installed from static binaries (no apt/yum needed), then containers |
-| **Force native mode** | Install Falco from repo + Alloy as static binary |
+| Strategy | Description |
+|----------|-------------|
+| `native` (default) | Falco from repo + Alloy as systemd service. **Recommended for best visibility.** |
+| `docker` | Run agents as containers |
+| `auto` | Use Docker if available, otherwise native |
 
-This works on **any Linux distribution** — no package manager access required. The Docker static binary approach means you can deploy to air-gapped systems, minimal containers, or locked-down servers.
+**Why native is recommended:** Native deployment sees all host processes, while Docker-based Falco may miss events from processes outside its container namespace.
+
+> ⚠️ **LXC Limitation:** Falco cannot run in LXC containers due to kernel access restrictions. Use VMs or run Falco on the LXC host itself.
 
 ### Deploy to Your Fleet
 
@@ -190,14 +192,14 @@ cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
 # Test connectivity
 make fleet-ping
 
-# Deploy agents to all hosts
+# Deploy agents to all hosts (native by default)
 make deploy-fleet
 
 # Or target specific hosts
 make deploy-fleet LIMIT=webserver
 
-# Force native deployment (no Docker)
-make deploy-fleet ARGS="-e deployment_strategy=native"
+# Force Docker deployment instead of native
+make deploy-fleet ARGS="-e deployment_strategy=docker"
 ```
 
 Each fleet host gets:
