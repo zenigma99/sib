@@ -305,6 +305,17 @@ make deploy-fleet LIMIT=problematic-host
    - 2801 (Falcosidekick)
    - 9090 (Prometheus, if using remote write)
 
+4. **Firewall**: Sidekick API (2801) is exposed externally for fleet access. Restrict to fleet nodes only:
+   ```bash
+   # UFW example
+   ufw allow from 192.168.1.0/24 to any port 2801
+   ufw allow from 10.0.0.0/8 to any port 2801
+   
+   # iptables example
+   iptables -A INPUT -p tcp --dport 2801 -s 192.168.1.0/24 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 2801 -j DROP
+   ```
+
 ## File Structure
 
 ```

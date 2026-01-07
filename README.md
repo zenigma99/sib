@@ -86,11 +86,17 @@ make install
 |---------|-----|---------|
 | **Grafana** | http://localhost:3000 | External (0.0.0.0) |
 | **Sidekick UI** | http://localhost:2802 | External (0.0.0.0) |
+| **Sidekick API** | http://localhost:2801 | External (0.0.0.0) |
 | Loki | http://localhost:3100 | Localhost only |
 | Prometheus | http://localhost:9090 | Localhost only |
-| Sidekick API | http://localhost:2801 | Localhost only |
 
 Default Grafana credentials: `admin` / `admin`
+
+> ⚠️ **Fleet Security Note:** Sidekick API (2801) is exposed externally so fleet hosts can send events. Use firewall rules to restrict access to your fleet nodes only:
+> ```bash
+> # UFW example: allow only from fleet subnet
+> ufw allow from 192.168.1.0/24 to any port 2801
+> ```
 
 ## 🎯 What Gets Detected?
 
@@ -197,6 +203,14 @@ sib/
 │               ├── security-overview.json
 │               ├── events-explorer.json
 │               └── fleet-overview.json
+├── ansible/                    # Fleet management (Dockerized)
+│   ├── inventory/
+│   │   ├── hosts.yml.example   # Host inventory template
+│   │   └── group_vars/all.yml  # Deployment settings
+│   ├── roles/
+│   │   ├── falco/              # Falco deployment role
+│   │   └── alloy/              # Alloy deployment role
+│   └── playbooks/
 ├── collectors/                 # Remote host collectors
 │   ├── compose.yaml            # Docker deployment
 │   ├── config/
@@ -425,7 +439,7 @@ See [ansible/README.md](ansible/README.md) for detailed configuration options.
 
 ## 🎭 Demo Mode
 
-Generate realistic security events for demonstrations, training, or testing your detection capabilities.
+Generate realistic security events **locally on your SIB server** — no fleet setup required! Perfect for first-time users, demonstrations, or testing detection capabilities.
 
 ```bash
 # Run comprehensive demo (~30 events across 9 MITRE ATT&CK categories)
@@ -434,6 +448,8 @@ make demo
 # Quick demo with 1-second delays
 make demo-quick
 ```
+
+The demo spins up a temporary container and triggers various Falco rules. Watch your Grafana dashboards light up in real-time at http://localhost:3000.
 
 ### Demo Coverage
 
