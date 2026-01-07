@@ -4,6 +4,8 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
+🌐 **Website**: [in-a-box-tools.tech](https://in-a-box-tools.tech)
+
 SIB provides a complete, self-hosted security monitoring stack for detecting threats in real-time. Built on Falco's runtime security engine with Loki for log storage and Grafana for visualization.
 
 ## 🌟 Features

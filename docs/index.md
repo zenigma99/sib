@@ -7,6 +7,7 @@ title: SIEM in a Box
 
 **Security monitoring shouldn't require a six-figure budget and a dedicated team. But somehow, it usually does.**
 
+<a href="https://in-a-box-tools.tech" class="btn">Website</a>
 <a href="https://github.com/matijazezelj/sib" class="btn">View on GitHub</a>
 <a href="https://github.com/matijazezelj/sib#-quick-start" class="btn">Documentation</a>
 
