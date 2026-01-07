@@ -56,6 +56,16 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 - **Linux kernel** 5.8+ (for modern_ebpf driver)
 - **4GB+ RAM** recommended
 
+### Hardware Requirements
+
+| Deployment | CPU | RAM | Disk | Notes |
+|------------|-----|-----|------|-------|
+| **SIB Server** (single host) | 2 cores | 4GB | 20GB | Runs Falco + full stack |
+| **SIB Server** (with fleet) | 4 cores | 8GB | 50GB+ | More storage for logs from multiple hosts |
+| **Fleet Agent** | 1 core | 512MB | 1GB | Falco + Alloy only |
+
+> 💡 **Not a network sniffer!** SIB uses Falco's eBPF-based syscall monitoring — it watches what programs do at the kernel level, not network packets. No mirror ports, TAPs, or bridge interfaces needed. Just install on any Linux host and it sees everything that host does.
+
 ```bash
 docker --version          # Should be 20.10+
 docker compose version    # Should be v2+

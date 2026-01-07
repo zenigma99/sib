@@ -57,6 +57,16 @@ That's it. You now have:
 
 The whole thing runs in Docker. No agents to install on every host (unless you want remote collectors). No cloud dependencies. Your data stays on your infrastructure.
 
+### Hardware Requirements
+
+| Deployment | CPU | RAM | Disk |
+|------------|-----|-----|------|
+| **SIB Server** (single host) | 2 cores | 4GB | 20GB |
+| **SIB Server** (with fleet) | 4 cores | 8GB | 50GB+ |
+| **Fleet Agent** | 1 core | 512MB | 1GB |
+
+> 💡 **This is NOT a network sniffer.** SIB uses Falco's eBPF syscall monitoring — it watches what programs do at the kernel level, not network packets. No mirror ports, TAPs, or promiscuous NICs needed. Install on any Linux host with kernel 5.8+ and it monitors everything that host does.
+
 ---
 
 ## What It Detects
