@@ -299,6 +299,23 @@ make analyze-dry-run
 ======================================================================
 ```
 
+### AI Analysis Dashboard
+
+Analyzed alerts are stored back in Loki and visualized in a dedicated dashboard:
+
+![AI Analysis Dashboard](assets/images/ai-analysis-dashboard.png)
+
+The dashboard shows:
+- **MITRE ATT&CK coverage** — Tactics and techniques detected across all analyzed alerts
+- **Severity distribution** — AI-assessed severity (Critical, High, Medium, Low)
+- **False positive tracking** — How many alerts the AI flagged as likely false positives
+- **Enriched alert log** — Full analysis with attack vectors, mitigations, and investigation steps
+
+Run analysis with storage enabled:
+```bash
+make analyze-store
+```
+
 See [analysis/README.md](https://github.com/matijazezelj/sib/blob/main/analysis/README.md) for configuration.
 
 ---
@@ -340,6 +357,7 @@ make convert-sigma        # Convert Sigma rules to Falco
 
 # AI Analysis (Beta)
 make analyze              # Analyze alerts with AI
+make analyze-store        # Analyze and store results in Loki
 make analyze-dry-run      # Preview obfuscated data
 
 # Fleet Management (no local Ansible needed)
