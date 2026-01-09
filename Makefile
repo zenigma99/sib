@@ -118,8 +118,25 @@ install-grafana: network ## Install Grafana dashboard
 
 install-analysis: network ## Install AI Analysis API service
 	@echo "$(CYAN)🤖 Installing AI Analysis API...$(RESET)"
-	@cd analysis && $(DOCKER_COMPOSE) up -d --build
-	@echo "$(GREEN)✓ AI Analysis API installed at http://localhost:5000$(RESET)"
+	@if [ -z "$(ANALYSIS_HOST)" ]; then \
+		echo "$(YELLOW)Enter the hostname/IP where the analysis API will be accessed from browsers$(RESET)"; \
+		echo "$(YELLOW)(e.g., your server's IP address or hostname):$(RESET)"; \
+		read -p "> " host; \
+	else \
+		host="$(ANALYSIS_HOST)"; \
+	fi; \
+	sed "s|ANALYSIS_HOST|$$host|g" analysis/events-explorer-ai.json > grafana/provisioning/dashboards/json/events-explorer.json; \
+	cd analysis && $(DOCKER_COMPOSE) up -d --build
+	@echo "$(GREEN)✓ AI Analysis API installed$(RESET)"
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-grafana; then \
+		echo "$(CYAN)Restarting Grafana to load new dashboard...$(RESET)"; \
+		docker restart sib-grafana >/dev/null; \
+		echo "$(GREEN)✓ Grafana restarted$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(CYAN)AI Analysis is now available:$(RESET)"
+	@echo "  • API: $(YELLOW)http://localhost:5000$(RESET)"
+	@echo "  • Dashboard: $(YELLOW)Events Explorer$(RESET) now has AI analysis links"
 
 # ==================== Start ====================
 

@@ -6,23 +6,39 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
-  "links": [],
   "panels": [
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false},
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum(count_over_time({source=\"syscall\", hostname=~\"$hostname\"} [$__range]))",
           "refId": "A"
         }
@@ -31,23 +47,45 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
       "id": 2,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false},
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "fieldConfig": {
-        "defaults": {"color": {"fixedColor": "red", "mode": "fixed"}}
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          }
+        }
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum(count_over_time({source=\"syscall\", hostname=~\"$hostname\", priority=~\"Critical|Error\"} [$__range]))",
           "refId": "A"
         }
@@ -56,23 +94,45 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
       "id": 3,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false},
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "fieldConfig": {
-        "defaults": {"color": {"fixedColor": "yellow", "mode": "fixed"}}
+        "defaults": {
+          "color": {
+            "fixedColor": "yellow",
+            "mode": "fixed"
+          }
+        }
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum(count_over_time({source=\"syscall\", hostname=~\"$hostname\", priority=\"Warning\"} [$__range]))",
           "refId": "A"
         }
@@ -81,23 +141,45 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
       "id": 4,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false},
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "fieldConfig": {
-        "defaults": {"color": {"fixedColor": "blue", "mode": "fixed"}}
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          }
+        }
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum(count_over_time({source=\"syscall\", hostname=~\"$hostname\", priority=\"Notice\"} [$__range]))",
           "refId": "A"
         }
@@ -106,16 +188,34 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 4},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
       "id": 5,
       "options": {
-        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
-        "tooltip": {"mode": "single", "sort": "none"}
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum by (priority) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} [$__interval]))",
           "legendFormat": "{{priority}}",
           "refId": "A"
@@ -125,18 +225,44 @@
       "type": "timeseries"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
       "id": 6,
       "options": {
-        "legend": {"calcs": ["sum"], "displayMode": "table", "placement": "right"},
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "right"
+        },
         "pieType": "pie",
-        "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false},
-        "tooltip": {"mode": "single", "sort": "none"}
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum by (rule) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} [$__range]))",
           "legendFormat": "{{rule}}",
           "refId": "A"
@@ -146,18 +272,44 @@
       "type": "piechart"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
       "id": 7,
       "options": {
-        "legend": {"calcs": ["sum"], "displayMode": "table", "placement": "right"},
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "right"
+        },
         "pieType": "pie",
-        "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false},
-        "tooltip": {"mode": "single", "sort": "none"}
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "sum by (priority) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} [$__range]))",
           "legendFormat": "{{priority}}",
           "refId": "A"
@@ -167,8 +319,16 @@
       "type": "piechart"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 20},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
       "id": 9,
       "options": {
         "dedupStrategy": "none",
@@ -182,29 +342,36 @@
       },
       "fieldConfig": {
         "defaults": {
-          "color": {"fixedColor": "dark-red", "mode": "fixed"},
-          "links": [
-            {
-              "title": "🤖 Analyze with AI",
-              "url": "http://192.168.1.163:5000/analyze?output=${__value.raw}&rule=${__data.fields.rule}&priority=${__data.fields.priority}&hostname=${__data.fields.hostname}",
-              "targetBlank": true
-            }
-          ]
+          "color": {
+            "fixedColor": "dark-red",
+            "mode": "fixed"
+          }
         }
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "{source=\"syscall\", hostname=~\"$hostname\", priority=\"Critical\"}",
           "refId": "A"
         }
       ],
-      "title": "🚨 Critical Events (Review Required)",
+      "title": "\ud83d\udea8 Critical Events (Review Required)",
       "type": "logs"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 30},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
       "id": 8,
       "options": {
         "dedupStrategy": "none",
@@ -217,19 +384,14 @@
         "wrapLogMessage": true
       },
       "fieldConfig": {
-        "defaults": {
-          "links": [
-            {
-              "title": "🤖 Analyze with AI",
-              "url": "http://192.168.1.163:5000/analyze?output=${__value.raw}&rule=${__data.fields.rule}&priority=${__data.fields.priority}&hostname=${__data.fields.hostname}",
-              "targetBlank": true
-            }
-          ]
-        }
+        "defaults": {}
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
           "expr": "{source=\"syscall\", hostname=~\"$hostname\"}",
           "refId": "A"
         }
@@ -240,13 +402,24 @@
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["security", "falco", "sib"],
+  "tags": [
+    "security",
+    "falco",
+    "sib"
+  ],
   "templating": {
     "list": [
       {
         "allValue": ".*",
-        "current": {"selected": true, "text": "All", "value": "$__all"},
-        "datasource": {"type": "loki", "uid": "loki"},
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
         "definition": "label_values({source=\"syscall\"}, hostname)",
         "includeAll": true,
         "multi": false,
@@ -259,7 +432,10 @@
       }
     ]
   },
-  "time": {"from": "now-1h", "to": "now"},
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Security Overview",

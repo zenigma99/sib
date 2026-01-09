@@ -7,7 +7,6 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
-  "links": [],
   "liveNow": false,
   "panels": [
     {
@@ -1464,15 +1463,7 @@
         "wrapLogMessage": true
       },
       "fieldConfig": {
-        "defaults": {
-          "links": [
-            {
-              "title": "\ud83e\udd16 Analyze with AI",
-              "url": "http://192.168.1.163:5000/analyze?output=${__value.raw}&rule=${__data.fields.rule}&priority=${__data.fields.priority}&hostname=${__data.fields.hostname}",
-              "targetBlank": true
-            }
-          ]
-        }
+        "defaults": {}
       },
       "targets": [
         {
@@ -1510,15 +1501,7 @@
         "wrapLogMessage": true
       },
       "fieldConfig": {
-        "defaults": {
-          "links": [
-            {
-              "title": "\ud83e\udd16 Analyze with AI",
-              "url": "http://192.168.1.163:5000/analyze?output=${__value.raw}&rule=${__data.fields.rule}&priority=${__data.fields.priority}&hostname=${__data.fields.hostname}",
-              "targetBlank": true
-            }
-          ]
-        }
+        "defaults": {}
       },
       "targets": [
         {
@@ -1545,8 +1528,15 @@
     "list": [
       {
         "allValue": ".*",
-        "current": {"selected": true, "text": "All", "value": "$__all"},
-        "datasource": {"type": "loki", "uid": "loki"},
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
         "definition": "label_values({source=\"syscall\"}, hostname)",
         "includeAll": true,
         "multi": false,
