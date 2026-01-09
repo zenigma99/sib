@@ -9,8 +9,10 @@ RUN pip install --no-cache-dir flask flask-cors requests pyyaml gunicorn
 COPY *.py ./
 COPY config.yaml ./
 
-# Create non-root user
-RUN useradd -m -r sib && chown -R sib:sib /app
+# Create non-root user and cache directory
+RUN useradd -m -r sib && \
+    mkdir -p /app/cache && \
+    chown -R sib:sib /app
 USER sib
 
 EXPOSE 5000

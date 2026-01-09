@@ -7,6 +7,7 @@ services:
       - "5000:5000"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+      - analysis-cache:/app/cache
     networks:
       - sib-network
     environment:
@@ -23,6 +24,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+volumes:
+  analysis-cache:
 
 networks:
   sib-network:

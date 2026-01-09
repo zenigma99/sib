@@ -9,7 +9,9 @@ import os
 import sys
 import json
 import logging
+import hashlib
 from datetime import datetime
+from pathlib import Path
 from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 
@@ -28,6 +30,10 @@ CORS(app)  # Allow Grafana to call API
 
 # Load config once at startup
 config = load_config()
+
+# Analysis cache directory
+CACHE_DIR = Path(os.environ.get('ANALYSIS_CACHE_DIR', '/app/cache'))
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # HTML template for analysis results page
 ANALYSIS_TEMPLATE = """
@@ -181,11 +187,30 @@ ANALYSIS_TEMPLATE = """
             color: #6e6e6e;
             font-size: 0.85em;
         }
+        .cached-badge {
+            display: inline-block;
+            background: #3274d9;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+        .nav-link {
+            color: #3274d9;
+            text-decoration: none;
+            margin-right: 15px;
+        }
+        .nav { margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🛡️ SIB Alert Analysis</h1>
+        <div class="nav">
+            <a href="/" class="nav-link">← API Home</a>
+            <a href="/history" class="nav-link">📜 History</a>
+        </div>
+        <h1>🛡️ SIB Alert Analysis {% if cached %}<span class="cached-badge">📋 Cached</span>{% endif %}</h1>
         
         {% if error %}
         <div class="error">
@@ -196,6 +221,7 @@ ANALYSIS_TEMPLATE = """
         <div class="privacy-note">
             <strong>🔐 Privacy Protected:</strong> Sensitive data was obfuscated before AI analysis. 
             IPs, usernames, hostnames, and secrets are replaced with tokens.
+            {% if cached %}<br><em>This is a cached result from {{ timestamp }}.</em>{% endif %}
         </div>
         
         <div class="section">
@@ -403,6 +429,88 @@ LOADING_TEMPLATE = """
 </html>
 """
 
+# ==================== Cache Functions ====================
+
+def normalize_output(output: str) -> str:
+    """Normalize alert output for consistent cache keys.
+    
+    Removes timestamps and normalizes whitespace to ensure
+    the same logical event produces the same cache key.
+    """
+    import re
+    # Normalize whitespace
+    normalized = ' '.join(output.split())
+    # Remove common timestamp patterns that make each event unique
+    # ISO format: 2026-01-09T12:34:56.789Z
+    normalized = re.sub(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?', '[TIME]', normalized)
+    # Unix timestamp: 1234567890 or 1234567890.123
+    normalized = re.sub(r'\b\d{10,13}(\.\d+)?\b', '[TIMESTAMP]', normalized)
+    # Common date formats
+    normalized = re.sub(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', '[TIME]', normalized)
+    return normalized
+
+
+def get_cache_key(output: str, rule: str) -> str:
+    """Generate a cache key from alert output and rule."""
+    normalized = normalize_output(output)
+    content = f"{normalized}:{rule}"
+    return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+
+def get_cached_analysis(cache_key: str) -> dict | None:
+    """Retrieve cached analysis if it exists."""
+    cache_file = CACHE_DIR / f"{cache_key}.json"
+    if cache_file.exists():
+        try:
+            with open(cache_file, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to read cache: {e}")
+    return None
+
+
+def save_to_cache(cache_key: str, result: dict, original_output: str, rule: str, priority: str, hostname: str):
+    """Save analysis result to cache."""
+    cache_file = CACHE_DIR / f"{cache_key}.json"
+    cache_data = {
+        'cache_key': cache_key,
+        'timestamp': datetime.now().isoformat(),
+        'original_output': original_output,
+        'rule': rule,
+        'priority': priority,
+        'hostname': hostname,
+        'analysis': result.get('analysis', {}),
+        'obfuscated_output': result.get('obfuscated_alert', {}).get('output', '') if isinstance(result.get('obfuscated_alert'), dict) else '',
+        'obfuscation_mapping': result.get('obfuscation_mapping', {})
+    }
+    try:
+        with open(cache_file, 'w') as f:
+            json.dump(cache_data, f, indent=2, default=str)
+        logger.info(f"Cached analysis: {cache_key}")
+    except Exception as e:
+        logger.warning(f"Failed to save cache: {e}")
+
+
+def list_cached_analyses(limit: int = 50) -> list:
+    """List all cached analyses, most recent first."""
+    cache_files = sorted(CACHE_DIR.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+    results = []
+    for cache_file in cache_files[:limit]:
+        try:
+            with open(cache_file, 'r') as f:
+                data = json.load(f)
+                results.append({
+                    'cache_key': data.get('cache_key', cache_file.stem),
+                    'timestamp': data.get('timestamp'),
+                    'rule': data.get('rule'),
+                    'priority': data.get('priority'),
+                    'hostname': data.get('hostname'),
+                    'severity': data.get('analysis', {}).get('risk', {}).get('severity', 'unknown')
+                })
+        except Exception:
+            pass
+    return results
+
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -490,7 +598,31 @@ def analyze_page():
                 severity_class='',
                 obfuscation_mapping={},
                 show_mapping=False,
-                timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                cached=False
+            )
+        
+        # Check cache first
+        cache_key = get_cache_key(output, rule)
+        cached_result = get_cached_analysis(cache_key)
+        
+        if cached_result:
+            # Return cached analysis
+            analysis = cached_result.get('analysis', {})
+            risk = analysis.get('risk', {})
+            severity = (risk.get('severity') or 'medium').lower()
+            severity_class = severity if severity in ['critical', 'high', 'medium', 'low'] else 'medium'
+            
+            return render_template_string(ANALYSIS_TEMPLATE,
+                error=None,
+                analysis=analysis,
+                original_output=output,
+                obfuscated_output=cached_result.get('obfuscated_output', ''),
+                severity_class=severity_class,
+                obfuscation_mapping=cached_result.get('obfuscation_mapping', {}),
+                show_mapping=show_mapping,
+                timestamp=cached_result.get('timestamp', 'cached'),
+                cached=True
             )
         
         # Build alert object
@@ -515,6 +647,9 @@ def analyze_page():
             except Exception as e:
                 logger.warning(f"Failed to store analysis: {e}")
         
+        # Save to cache
+        save_to_cache(cache_key, result, output, rule, priority, hostname)
+        
         # Determine severity class for styling
         analysis = result.get('analysis', {})
         risk = analysis.get('risk', {})
@@ -533,7 +668,8 @@ def analyze_page():
             severity_class=severity_class,
             obfuscation_mapping=result.get('obfuscation_mapping', {}),
             show_mapping=show_mapping,
-            timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            cached=False
         )
         
     except Exception as e:
@@ -546,30 +682,122 @@ def analyze_page():
             severity_class='',
             obfuscation_mapping={},
             show_mapping=False,
-            timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            cached=False
         )
+
+
+@app.route('/history', methods=['GET'])
+def history_page():
+    """List all cached analyses."""
+    analyses = list_cached_analyses(limit=100)
+    
+    rows = ""
+    for a in analyses:
+        severity = a.get('severity', 'unknown')
+        severity_color = {'critical': '#f2495c', 'high': '#ff9830', 'medium': '#fade2a', 'low': '#73bf69'}.get(severity, '#8e8e8e')
+        rows += f"""
+        <tr onclick="window.location='/history/{a['cache_key']}'" style="cursor: pointer;">
+            <td>{a.get('timestamp', '')[:19]}</td>
+            <td>{a.get('rule', '')}</td>
+            <td>{a.get('priority', '')}</td>
+            <td style="color: {severity_color}; font-weight: bold;">{severity}</td>
+            <td>{a.get('hostname', '')}</td>
+        </tr>"""
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Analysis History - SIB</title>
+        <style>
+            body {{ font-family: -apple-system, sans-serif; background: #111217; color: #d8d9da; padding: 40px; }}
+            h1 {{ color: #ff9830; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+            th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #2c3235; }}
+            th {{ background: #1f2129; color: #73bf69; }}
+            tr:hover {{ background: #1f2129; }}
+            a {{ color: #3274d9; text-decoration: none; }}
+            .back {{ margin-bottom: 20px; }}
+        </style>
+    </head>
+    <body>
+        <div class="back"><a href="/">← Back to API</a></div>
+        <h1>📜 Analysis History</h1>
+        <p>{len(analyses)} cached analyses</p>
+        <table>
+            <tr><th>Timestamp</th><th>Rule</th><th>Priority</th><th>AI Severity</th><th>Hostname</th></tr>
+            {rows}
+        </table>
+    </body>
+    </html>
+    """
+
+
+@app.route('/history/<cache_key>', methods=['GET'])
+def history_detail(cache_key: str):
+    """View a cached analysis."""
+    cached = get_cached_analysis(cache_key)
+    if not cached:
+        return "Analysis not found", 404
+    
+    analysis = cached.get('analysis', {})
+    risk = analysis.get('risk', {})
+    severity = (risk.get('severity') or 'medium').lower()
+    severity_class = severity if severity in ['critical', 'high', 'medium', 'low'] else 'medium'
+    
+    return render_template_string(ANALYSIS_TEMPLATE,
+        error=None,
+        analysis=analysis,
+        original_output=cached.get('original_output', ''),
+        obfuscated_output=cached.get('obfuscated_output', ''),
+        severity_class=severity_class,
+        obfuscation_mapping=cached.get('obfuscation_mapping', {}),
+        show_mapping=False,
+        timestamp=cached.get('timestamp', 'cached'),
+        cached=True
+    )
+
+
+@app.route('/api/history', methods=['GET'])
+def api_history():
+    """API endpoint to list cached analyses."""
+    limit = request.args.get('limit', 50, type=int)
+    return jsonify(list_cached_analyses(limit=limit))
 
 
 @app.route('/', methods=['GET'])
 def index():
     """Home page with API documentation."""
-    return """
+    cached_count = len(list(CACHE_DIR.glob("*.json")))
+    return f"""
     <!DOCTYPE html>
     <html>
     <head>
         <title>SIB Analysis API</title>
         <style>
-            body { font-family: -apple-system, sans-serif; background: #111217; color: #d8d9da; padding: 40px; }
-            h1 { color: #ff9830; }
-            h2 { color: #73bf69; margin-top: 30px; }
-            code { background: #2a2d35; padding: 2px 8px; border-radius: 4px; }
-            pre { background: #1f2129; padding: 20px; border-radius: 8px; overflow-x: auto; }
-            a { color: #3274d9; }
+            body {{ font-family: -apple-system, sans-serif; background: #111217; color: #d8d9da; padding: 40px; }}
+            h1 {{ color: #ff9830; }}
+            h2 {{ color: #73bf69; margin-top: 30px; }}
+            code {{ background: #2a2d35; padding: 2px 8px; border-radius: 4px; }}
+            pre {{ background: #1f2129; padding: 20px; border-radius: 8px; overflow-x: auto; }}
+            a {{ color: #3274d9; }}
+            .stat {{ display: inline-block; background: #1f2129; padding: 15px 25px; border-radius: 8px; margin-right: 15px; }}
+            .stat-value {{ font-size: 2em; color: #73bf69; }}
+            .stat-label {{ color: #8e8e8e; }}
         </style>
     </head>
     <body>
         <h1>🛡️ SIB Analysis API</h1>
         <p>AI-powered security alert analysis with privacy protection.</p>
+        
+        <div style="margin: 30px 0;">
+            <div class="stat">
+                <div class="stat-value">{cached_count}</div>
+                <div class="stat-label">Cached Analyses</div>
+            </div>
+            <a href="/history" style="background: #3274d9; color: white; padding: 15px 25px; border-radius: 8px; text-decoration: none;">📜 View History</a>
+        </div>
         
         <h2>Endpoints</h2>
         
@@ -577,22 +805,25 @@ def index():
         <p>Analyze an alert and display results in a web page (for Grafana data links).</p>
         <pre>GET /analyze?output=&lt;alert_text&gt;&amp;rule=&lt;rule_name&gt;&amp;priority=&lt;priority&gt;&amp;hostname=&lt;host&gt;</pre>
         
+        <h3>GET /history</h3>
+        <p>View all cached analyses.</p>
+        
         <h3>POST /api/analyze</h3>
         <p>Analyze an alert and return JSON results.</p>
-        <pre>{
+        <pre>{{
     "alert": "alert output text",
     "rule": "rule name",
     "priority": "Critical",
     "hostname": "host",
     "store": true
-}</pre>
+}}</pre>
         
         <h3>GET /health</h3>
         <p>Health check endpoint.</p>
         
         <h2>Grafana Integration</h2>
         <p>Add a data link to your log panels:</p>
-        <pre>http://localhost:5000/analyze?output=${__value.raw}&amp;rule=${__data.fields.rule}&amp;priority=${__data.fields.priority}&amp;hostname=${__data.fields.hostname}</pre>
+        <pre>http://localhost:5000/analyze?output=${{__value.raw}}&amp;rule=${{__data.fields.rule}}&amp;priority=${{__data.fields.priority}}&amp;hostname=${{__data.fields.hostname}}</pre>
     </body>
     </html>
     """

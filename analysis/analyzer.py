@@ -356,23 +356,47 @@ class AlertAnalyzer:
         return results
 
 
+def expand_env_vars(obj):
+    """Recursively expand environment variables in config values."""
+    import re
+    if isinstance(obj, dict):
+        return {k: expand_env_vars(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [expand_env_vars(item) for item in obj]
+    elif isinstance(obj, str):
+        # Handle ${VAR:-default} and ${VAR} patterns
+        def replace_var(match):
+            var_name = match.group(1)
+            default = match.group(3) if match.group(3) else ''
+            return os.environ.get(var_name, default)
+        # Pattern matches ${VAR} or ${VAR:-default}
+        return re.sub(r'\$\{([^}:]+)(:-([^}]*))?\}', replace_var, obj)
+    return obj
+
+
 def load_config(config_path: Optional[str] = None) -> dict:
-    """Load configuration from file."""
+    """Load configuration from file with environment variable expansion."""
+    config = None
+    
     if config_path and os.path.exists(config_path):
         with open(config_path) as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f)
+    else:
+        # Try default locations
+        default_paths = [
+            'config.yaml',
+            os.path.expanduser('~/.config/sib/analysis.yaml'),
+            '/etc/sib/analysis.yaml'
+        ]
+        
+        for path in default_paths:
+            if os.path.exists(path):
+                with open(path) as f:
+                    config = yaml.safe_load(f)
+                    break
     
-    # Try default locations
-    default_paths = [
-        'config.yaml',
-        os.path.expanduser('~/.config/sib/analysis.yaml'),
-        '/etc/sib/analysis.yaml'
-    ]
-    
-    for path in default_paths:
-        if os.path.exists(path):
-            with open(path) as f:
-                return yaml.safe_load(f)
+    if config:
+        return expand_env_vars(config)
     
     # Return minimal default config
     return {
