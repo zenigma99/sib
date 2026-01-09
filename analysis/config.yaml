@@ -3,18 +3,18 @@ analysis:
   enabled: true
   obfuscation_level: standard
   
-  # LLM Provider: ollama, openai, anthropic
-  provider: anthropic
+  # LLM Provider: ollama, openai, anthropic (env: LLM_PROVIDER)
+  provider: ${LLM_PROVIDER:-anthropic}
   
   # Ollama (local) - for privacy
   ollama:
-    url: http://192.168.101.226:11434
-    model: qwen2.5:14b
+    url: ${OLLAMA_URL:-http://localhost:11434}
+    model: ${OLLAMA_MODEL:-qwen2.5:14b}
   
   # Anthropic Claude - requires API key
   anthropic:
     api_key: ${ANTHROPIC_API_KEY}
-    model: claude-sonnet-4-20250514
+    model: ${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
 
 loki:
   url: http://localhost:3100
