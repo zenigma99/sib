@@ -55,7 +55,8 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 
 ## 📋 Prerequisites
 
-- **Docker CE** 20.10+ from [docker.com](https://docs.docker.com/engine/install/) with Docker Compose v2+, or **Podman** 4.0+ with podman-compose
+- **Docker CE** 20.10+ from [docker.com](https://docs.docker.com/engine/install/) with Docker Compose v2+, or **Podman** 4.0+ in rootful mode with podman-compose
+  - ⚠️ Podman must run as root (rootful mode) — Falco requires kernel access to monitor syscalls
 - **Linux kernel** 5.8+ (for modern_ebpf driver)
 - **4GB+ RAM** recommended
 

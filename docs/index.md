@@ -58,6 +58,13 @@ That's it. You now have:
 
 The whole thing runs in Docker. No agents to install on every host (unless you want remote collectors). No cloud dependencies. Your data stays on your infrastructure.
 
+### Prerequisites
+
+- **Docker CE** 20.10+ from [docker.com](https://docs.docker.com/engine/install/) or **Podman** 4.0+ in rootful mode
+  - ⚠️ Podman must run as root — Falco requires kernel access to monitor syscalls
+- Linux kernel 5.8+ (for modern_ebpf driver)
+- 4GB+ RAM recommended
+
 ### Requirements
 
 **Container Runtime**: [Docker CE](https://docs.docker.com/engine/install/) 20.10+ or [Podman](https://podman.io/) 4.0+
