@@ -42,7 +42,7 @@ help: ## Show this help message
 	@grep -E '^(update-threatintel|convert-sigma):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Utilities:$(RESET)"
-	@grep -E '^(open|open-ui|info|ps|clean|check-ports|validate):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -E '^(open|info|ps|clean|check-ports|validate):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Remote Collectors:$(RESET)"
 	@grep -E '^(enable-remote|deploy-collector):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
@@ -285,6 +285,12 @@ status: ## Show status of all stacks with health indicators
 	else \
 		printf "  %-22s $(RED)%-12s$(RESET)\n" "Grafana" "stopped"; \
 	fi
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-analysis; then \
+		health=$$(curl -sf http://localhost:5000/health 2>/dev/null && echo "$(GREEN)✓ healthy$(RESET)" || echo "$(YELLOW)? starting$(RESET)"); \
+		printf "  %-22s $(GREEN)%-12s$(RESET) %b\n" "AI Analysis" "running" "$$health"; \
+	else \
+		printf "  %-22s $(CYAN)%-12s$(RESET) %s\n" "AI Analysis" "not installed" "(optional)"; \
+	fi
 	@echo ""
 
 # ==================== Health ====================
@@ -305,6 +311,13 @@ health: ## Quick health check of all services
 	@echo ""
 	@echo "$(CYAN)Visualization:$(RESET)"
 	@curl -sf http://localhost:3000/api/health >/dev/null 2>&1 && echo "  $(GREEN)✓$(RESET) Grafana is healthy" || echo "  $(RED)✗$(RESET) Grafana is not responding"
+	@echo ""
+	@echo "$(CYAN)AI Analysis (optional):$(RESET)"
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-analysis; then \
+		curl -sf http://localhost:5000/health >/dev/null 2>&1 && echo "  $(GREEN)✓$(RESET) Analysis API is healthy" || echo "  $(RED)✗$(RESET) Analysis API is not responding"; \
+	else \
+		echo "  $(CYAN)-$(RESET) Not installed (run 'make install-analysis')"; \
+	fi
 	@echo ""
 
 doctor: ## Diagnose common issues
@@ -357,6 +370,20 @@ logs-grafana: ## Tail Grafana logs
 
 logs-analysis: ## Tail AI Analysis API logs
 	@cd analysis && $(DOCKER_COMPOSE) logs -f
+
+# ==================== Shell Access ====================
+
+shell-falco: ## Open shell in Falco container
+	@docker exec -it sib-falco /bin/sh
+
+shell-grafana: ## Open shell in Grafana container
+	@docker exec -it sib-grafana /bin/bash
+
+shell-loki: ## Open shell in Loki container
+	@docker exec -it sib-loki /bin/sh
+
+shell-analysis: ## Open shell in Analysis container
+	@docker exec -it sib-analysis /bin/bash
 
 # ==================== Testing ====================
 
@@ -412,6 +439,9 @@ info: ## Show all endpoints and ports
 	@echo ""
 	@echo "$(CYAN)Web Interfaces:$(RESET)"
 	@echo "  Grafana:            $(YELLOW)http://localhost:3000$(RESET)"
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-analysis; then \
+		echo "  AI Analysis API:    $(YELLOW)http://localhost:5000$(RESET)"; \
+	fi
 	@echo ""
 	@echo "$(CYAN)APIs:$(RESET)"
 	@echo "  Falcosidekick:      $(YELLOW)http://localhost:2801$(RESET)"
@@ -422,6 +452,9 @@ info: ## Show all endpoints and ports
 	@echo "  Falcosidekick:      sib-sidekick:2801"
 	@echo "  Loki:               sib-loki:3100"
 	@echo "  Prometheus:         sib-prometheus:9090"
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-analysis; then \
+		echo "  Analysis API:       sib-analysis:5000"; \
+	fi
 	@echo ""
 
 ps: ## Show running SIB containers
@@ -483,13 +516,14 @@ update: ## Pull latest images and restart all stacks
 	@echo ""
 	@echo "$(GREEN)✓ All stacks updated$(RESET)"
 
-.PHONY: help network install install-detection install-alerting install-storage install-grafana \
-        start start-detection start-alerting start-storage start-grafana \
-        stop stop-detection stop-alerting stop-storage stop-grafana \
-        restart restart-detection restart-alerting restart-storage restart-grafana \
-        uninstall uninstall-detection uninstall-alerting uninstall-storage uninstall-grafana uninstall-collectors \
-        status health doctor logs logs-falco logs-sidekick logs-storage logs-grafana \
-        test-alert demo test-rules open open-ui info ps check-ports validate clean update \
+.PHONY: help network install install-detection install-alerting install-storage install-grafana install-analysis \
+        start start-detection start-alerting start-storage start-grafana start-analysis \
+        stop stop-detection stop-alerting stop-storage stop-grafana stop-analysis \
+        restart restart-detection restart-alerting restart-storage restart-grafana restart-analysis \
+        uninstall uninstall-detection uninstall-alerting uninstall-storage uninstall-grafana uninstall-analysis uninstall-collectors \
+        status health doctor logs logs-falco logs-sidekick logs-storage logs-grafana logs-analysis \
+        shell-falco shell-grafana shell-loki shell-analysis \
+        test-alert demo demo-quick test-rules open info ps check-ports validate clean update \
         enable-remote deploy-collector
 
 # ==================== Remote Collectors ====================

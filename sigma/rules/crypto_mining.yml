@@ -3,7 +3,7 @@ id: sib-crypto-001
 status: experimental
 description: Detects known cryptocurrency mining processes
 author: SIB
-date: 2024/01/01
+date: 2024-01-01
 references:
     - https://attack.mitre.org/techniques/T1496/
 logsource:
