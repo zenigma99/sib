@@ -23,8 +23,16 @@ RUN ansible-galaxy collection install \
     community.docker \
     community.general
 
-# Create working directory
+# Create non-root user
+RUN groupadd --gid 1000 ansible && \
+    useradd --uid 1000 --gid ansible --shell /bin/bash --create-home ansible
+
+# Create working directory and set permissions
 WORKDIR /ansible
+RUN chown -R ansible:ansible /ansible
+
+# Switch to non-root user
+USER ansible
 
 # Default command
 ENTRYPOINT ["ansible-playbook"]
