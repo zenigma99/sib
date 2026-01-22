@@ -773,3 +773,4 @@ Apache 2.0 License - See [LICENSE](LICENSE) for details.
 - [Falcosidekick](https://github.com/falcosecurity/falcosidekick) - Alert routing
 - [Grafana](https://grafana.com/) - Observability platform
 - [Loki](https://grafana.com/oss/loki/) - Log aggregation
+- [VictoriaLogs](https://github.com/VictoriaMetrics/VictoriaLogs) - Fast log storage (thanks [@valyala](https://github.com/valyala) for the suggestion!)
