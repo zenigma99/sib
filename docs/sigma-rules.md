@@ -148,15 +148,17 @@ cat sigma/output/falco_rules.yaml >> detection/config/rules/custom_rules.yaml
 make restart
 ```
 
-### Add to Loki Alerting
+### Add to Loki Alerting (Grafana Stack)
 
 ```bash
 # Copy to Loki config
 cp sigma/output/logql_alerts.yaml storage/config/rules/
 
 # Restart Loki
-docker compose -f storage/compose.yaml restart loki
+docker compose -f storage/compose-grafana.yaml restart loki
 ```
+
+> **Note:** This applies to the Grafana stack (`STACK=grafana`). For VictoriaLogs, use LogsQL alerts with `-o logsql`.
 
 ---
 

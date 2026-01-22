@@ -225,10 +225,11 @@ See [AI Analysis](ai-analysis.md) for configuration details.
 Install components individually if needed:
 
 ```bash
-make install-detection    # Falco + Falcosidekick
-make install-storage      # Loki + Prometheus
-make install-grafana      # Grafana dashboards
-make install-analysis     # AI analysis (optional)
+make install-detection       # Falco + Falcosidekick
+make install-storage-vm      # VictoriaLogs + VictoriaMetrics (default)
+make install-storage-grafana # Loki + Prometheus (alternative)
+make install-grafana         # Grafana dashboards
+make install-analysis        # AI analysis (optional)
 ```
 
 ---

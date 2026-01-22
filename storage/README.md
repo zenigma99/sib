@@ -4,26 +4,26 @@ This directory contains the storage backends for SIB. Two stack configurations a
 
 | Stack | Components | Compose File | Use Case |
 |-------|------------|--------------|----------|
-| **`grafana`** (default) | Loki + Prometheus | `compose-grafana.yaml` | Grafana-native, familiar tools |
-| **`vm`** | VictoriaLogs + VictoriaMetrics + node_exporter | `compose-vm.yaml` | 10x less RAM, faster queries |
+| **`vm`** (default) | VictoriaLogs + VictoriaMetrics + node_exporter | `compose-vm.yaml` | 10x less RAM, faster queries |
+| **`grafana`** | Loki + Prometheus | `compose-grafana.yaml` | Grafana-native, familiar tools |
 
 ## Stack Selection
 
 Configure your stack in `.env`:
 
 ```bash
-# Grafana ecosystem (default)
-STACK=grafana
-
-# VictoriaMetrics ecosystem  
+# VictoriaMetrics ecosystem (default)
 STACK=vm
+
+# Grafana ecosystem (alternative)
+STACK=grafana
 ```
 
 Then run `make install` - it automatically deploys the correct stack.
 
 ## Components
 
-### Grafana Stack (`STACK=grafana`)
+### VM Stack (`STACK=vm`) - Default
 
 | Service | Port | Description |
 |---------|------|-------------|

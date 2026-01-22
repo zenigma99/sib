@@ -132,14 +132,34 @@ docker exec sib-falco falco --list
    docker logs sib-sidekick --tail 10
    ```
 
-3. **Check Loki is storing**:
+3. **Check storage backend is storing**:
+
+   **VictoriaLogs (default):**
+   ```bash
+   curl -s "http://localhost:9428/select/logsql/query?query=source:syscall&limit=5" | jq
+   ```
+
+   **Loki (Grafana stack):**
    ```bash
    curl -s "http://localhost:3100/loki/api/v1/query?query={source=\"syscall\"}" | jq '.data.result | length'
    ```
 
 4. **Check Grafana datasource**:
-   - Go to Grafana → Settings → Data sources → Loki
-   - Click "Test" button
+   - Go to Grafana → Settings → Data sources
+   - Click on VictoriaLogs or Loki → Click "Test" button
+
+### VictoriaLogs Query Returns Empty
+
+```bash
+# Check VictoriaLogs is healthy
+curl http://localhost:9428/health
+
+# Check what fields exist
+curl "http://localhost:9428/select/logsql/field_names"
+
+# Try a simple query
+curl "http://localhost:9428/select/logsql/query?query=*&limit=10"
+```
 
 ### Loki Query Returns Empty
 
@@ -157,10 +177,17 @@ curl -G http://localhost:3100/loki/api/v1/query --data-urlencode 'query={job=~".
 ### Sidekick Not Forwarding
 
 Check configuration in `alerting/config/config.yaml`:
+
+**VictoriaLogs (default):**
+```yaml
+victorialogs:
+  hostport: http://victorialogs:9428
+```
+
+**Loki (Grafana stack):**
 ```yaml
 loki:
   hostport: http://loki:3100
-  # Ensure this matches your Loki service name
 ```
 
 Restart after changes:
@@ -185,7 +212,7 @@ docker compose -f grafana/compose.yaml restart
 ### Dashboards Show "No Data"
 
 1. **Check time range**: Ensure it covers when events occurred
-2. **Check datasource**: Verify Loki datasource is working
+2. **Check datasource**: Verify VictoriaLogs/Loki datasource is working
 3. **Generate events**: Run `make demo` to create test data
 4. **Check query**: Open panel → Edit → check for errors
 
@@ -233,6 +260,11 @@ docker logs sib-alloy --tail 50
 journalctl -u alloy -n 50
 
 # Verify network connectivity to SIB server
+# VictoriaLogs (default):
+curl -s http://SIB_SERVER:9428/health
+curl -s http://SIB_SERVER:8428/-/healthy
+
+# Loki (Grafana stack):
 curl -s http://SIB_SERVER:3100/ready
 curl -s http://SIB_SERVER:9090/-/ready
 ```
@@ -240,7 +272,9 @@ curl -s http://SIB_SERVER:9090/-/ready
 ### Fleet Host Not Appearing
 
 1. Check the collector is running on remote host
-2. Verify firewall allows traffic to SIB server ports (3100, 9090, 2801)
+2. Verify firewall allows traffic to SIB server ports
+   - **VictoriaMetrics stack**: 9428, 8428, 2801
+   - **Grafana stack**: 3100, 9090, 2801
 3. Check `host` label in Loki:
    ```bash
    curl http://localhost:3100/loki/api/v1/label/host/values
@@ -289,11 +323,15 @@ llm:
 # Check container memory
 docker stats
 
-# Reduce Loki retention
+# VictoriaLogs - already uses 10x less RAM than Loki
+
+# For Grafana stack - reduce Loki retention
 # Edit storage/config/loki-config.yml
 retention_period: 168h  # Reduce from default
 
-# Limit Prometheus retention
+# VictoriaMetrics - already uses 10x less RAM than Prometheus
+
+# For Grafana stack - limit Prometheus retention
 # Edit storage/config/prometheus.yml
 storage.tsdb.retention.time: 7d
 ```

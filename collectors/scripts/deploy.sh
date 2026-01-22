@@ -30,7 +30,7 @@ sed "s/SIB_SERVER_IP/$SIB_SERVER/g" "$COLLECTORS_DIR/config/config.alloy" > "$TE
 echo "[1/4] Copying Alloy configuration..."
 ssh "$REMOTE_HOST" "mkdir -p ~/sib-collector/config"
 scp "$TEMP_CONFIG" "$REMOTE_HOST:~/sib-collector/config/config.alloy"
-scp "$COLLECTORS_DIR/compose.yaml" "$REMOTE_HOST:~/sib-collector/"
+scp "$COLLECTORS_DIR/compose-vm.yaml" "$REMOTE_HOST:~/sib-collector/compose.yaml"
 rm "$TEMP_CONFIG"
 
 echo "[2/4] Starting Alloy container..."

@@ -16,7 +16,7 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 - **Pre-built Dashboards**: Grafana dashboards for security overview and event exploration
 - **MITRE ATT&CK Coverage**: Dashboard mapping detections to the ATT&CK framework
 - **Demo Mode**: Generate realistic security events to see dashboards in action
-- **Sigma Rules**: Convert Sigma rules to Falco/LogQL format
+- **Sigma Rules**: Convert Sigma rules to Falco/LogsQL format
 - **Threat Intel**: IP blocklists from Abuse.ch, Spamhaus, and more
 - **Remote Collectors**: Ship logs from multiple hosts with Grafana Alloy
 - **Fleet Management**: Dockerized Ansible for deploying agents across infrastructure (no local Ansible needed)
@@ -32,23 +32,22 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────┐     ┌─────────────────┐     ┌───────────────────────────┐ │
-│  │    Falco     │     │  Falcosidekick  │     │   VictoriaLogs / Loki     │ │
+│  │    Falco     │     │  Falcosidekick  │     │      VictoriaLogs         │ │
 │  │  (Detection) │────▶│   (Fan-out)     │────▶│      (Log Storage)        │ │
 │  │  modern_ebpf │     │                 │     │                           │ │
 │  └──────────────┘     └─────────────────┘     └───────────────────────────┘ │
-│                               │                            │                 │
-│                               ▼                            ▼                 │
-│                       ┌─────────────────┐     ┌───────────────────────────┐ │
-│                       │  Falcosidekick  │     │        Grafana            │ │
-│                       │       UI        │     │   • Security Overview     │ │
-│                       │  (Event View)   │     │   • Events Explorer       │ │
-│                       └─────────────────┘     │   • Critical Events       │ │
-│                               │               └───────────────────────────┘ │
-│                               ▼                                              │
-│                       ┌─────────────────┐     ┌───────────────────────────┐ │
-│                       │  Redis Stack    │     │      Prometheus           │ │
-│                       │  (RediSearch)   │     │      (Metrics)            │ │
-│                       └─────────────────┘     └───────────────────────────┘ │
+│                                                            │                 │
+│                                                            ▼                 │
+│  ┌──────────────┐                             ┌───────────────────────────┐ │
+│  │ node_exporter│                             │        Grafana            │ │
+│  │   (Metrics)  │────────────────────────────▶│   • Security Overview     │ │
+│  └──────────────┘                             │   • Events Explorer       │ │
+│         │                                     │   • MITRE ATT&CK          │ │
+│         ▼                                     │   • Fleet Overview        │ │
+│  ┌──────────────┐                             └───────────────────────────┘ │
+│  │VictoriaMetrics│                                         ▲                │
+│  │   (Metrics)  │──────────────────────────────────────────┘                │
+│  └──────────────┘                                                           │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -198,14 +197,13 @@ Default Grafana credentials: `admin` / `admin`
 ## 🛠️ Commands
 
 ```bash
-# Installation (reads LOGS_ENDPOINT and METRICS_ENDPOINT from .env)
-make install              # Install all stacks (auto-configures storage backend)
-make uninstall            # Remove everything (auto-detects storage backend)
+# Installation (reads STACK from .env: vm or grafana)
+make install              # Install all stacks (auto-configures based on STACK)
+make uninstall            # Remove everything
 
 # Storage (Manual override)
-make install-storage                   # Install Loki + Prometheus
-make install-storage-victorialogs     # Install VictoriaLogs + Prometheus
-make install-storage-victoriametrics  # Install VictoriaLogs + VictoriaMetrics (full VM)
+make install-storage-vm              # Install VictoriaLogs + VictoriaMetrics (default)
+make install-storage-grafana         # Install Loki + Prometheus (alternative)
 
 # Management
 make start                # Start all services
@@ -219,8 +217,7 @@ make doctor               # Diagnose common issues
 make logs                 # Tail all logs
 make logs-falco           # Tail Falco logs
 make logs-sidekick        # Tail Falcosidekick logs
-make logs-storage         # Tail Loki + Prometheus logs
-make logs-storage-victorialogs     # Tail VictoriaLogs + Prometheus logs
+make logs-storage         # Tail storage logs (auto-detects stack)
 make logs-grafana         # Tail Grafana logs
 
 # Demo & Testing
@@ -231,7 +228,7 @@ make test-alert           # Generate a test security alert
 
 # Threat Intel & Sigma
 make update-threatintel   # Download threat intel feeds
-make convert-sigma        # Convert Sigma rules to Falco
+make convert-sigma        # Convert Sigma rules to Falco/LogsQL
 
 # AI Analysis (Optional)
 make install-analysis     # Install AI analysis API (integrated with Grafana)
@@ -239,10 +236,6 @@ make logs-analysis        # View analysis API logs
 
 # Utilities
 make open                 # Open Grafana in browser
-make use-victorialogs-datasource   # Switch Grafana to VictoriaLogs
-make use-loki-datasource           # Switch Grafana back to Loki
-make use-victorialogs-output       # Send alerts to VictoriaLogs
-make use-loki-output               # Send alerts back to Loki
 make info                 # Show all endpoints
 ```
 
@@ -263,7 +256,7 @@ make info                 # Show all endpoints
 ```
 sib/
 ├── Makefile                    # Main entry point
-├── .env.example                # Environment template (LOGS_ENDPOINT config)
+├── .env.example                # Environment template (STACK config)
 ├── scripts/
 │   └── test-pipeline.sh        # Pipeline verification script
 ├── detection/                  # Falco stack
@@ -272,14 +265,14 @@ sib/
 │       ├── falco.yaml          # Falco config (modern_ebpf)
 │       └── rules/
 │           └── custom_rules.yaml  # Custom detection rules
-├── alerting/                   # Falcosidekick + UI + Redis
+├── alerting/                   # Falcosidekick
 │   ├── compose.yaml
 │   └── config/
 │       ├── config.yaml.template  # Sidekick config template
 │       └── config.yaml         # Generated from template on install
 ├── storage/                    # Log storage backends
-│   ├── compose.yaml            # Loki + Prometheus
-│   ├── compose-victorialogs.yaml  # VictoriaLogs + Prometheus
+│   ├── compose-vm.yaml         # VictoriaLogs + VictoriaMetrics (default)
+│   ├── compose-grafana.yaml    # Loki + Prometheus (alternative)
 │   └── config/
 │       ├── loki-config.yml
 │       └── prometheus.yml
@@ -300,7 +293,8 @@ sib/
 │   │   └── alloy/              # Alloy deployment role
 │   └── playbooks/
 ├── collectors/                 # Remote host collectors
-│   ├── compose.yaml            # Docker deployment
+│   ├── compose-vm.yaml         # VictoriaMetrics stack collectors
+│   ├── compose-grafana.yaml    # Grafana stack collectors
 │   ├── config/
 │   │   └── config.alloy        # Alloy configuration
 │   └── scripts/
@@ -513,7 +507,8 @@ mkdir -p ~/sib-collector/config
 scp collectors/config/config.alloy user@remote:~/sib-collector/config/
 # Edit config.alloy - replace SIB_SERVER_IP with your SIB server IP
 
-scp collectors/compose.yaml user@remote:~/sib-collector/
+# Copy compose file (use compose-vm.yaml or compose-grafana.yaml based on your stack)
+scp collectors/compose-vm.yaml user@remote:~/sib-collector/compose.yaml
 
 # Start the collector
 ssh user@remote "cd ~/sib-collector && HOSTNAME=\$(hostname) docker compose up -d"
@@ -525,11 +520,13 @@ ssh user@remote "cd ~/sib-collector && HOSTNAME=\$(hostname) docker compose up -
 # Check Alloy logs on remote host
 ssh user@remote "docker logs sib-alloy --tail 20"
 
-# Query Loki for collector data
-curl -s "http://localhost:3100/loki/api/v1/label/host/values"
+# Query VictoriaLogs for collector data (default stack)
+curl -s "http://localhost:9428/select/logsql/query?query=*" | head
 
-# Check metrics in Prometheus
-curl -s 'http://localhost:9090/api/v1/query?query=node_uname_info{collector="alloy"}'
+# Check metrics in VictoriaMetrics (default stack)
+curl -s 'http://localhost:8428/api/v1/query?query=node_uname_info'
+
+# Or for Grafana stack: Loki at :3100, Prometheus at :9090
 ```
 
 ### Fleet Overview Dashboard
@@ -623,11 +620,14 @@ Each event triggers corresponding Falco rules and flows through to Grafana in re
 
 ## 📐 Sigma Rules Integration
 
-[Sigma](https://sigmahq.io/) is the universal language for security detection rules. SIB includes a converter to translate Sigma rules to Falco rules and LogQL alerts.
+[Sigma](https://sigmahq.io/) is the universal language for security detection rules. SIB includes a converter to translate Sigma rules to Falco rules and LogsQL alerts (VictoriaLogs).
 
 ```bash
 # Convert all Sigma rules in sigma/rules/
 make convert-sigma
+
+# Convert to LogsQL for VictoriaLogs (default)
+./sigma/sigma2sib.py sigma/rules/ -o logsql
 
 # Convert a specific rule
 ./sigma/sigma2sib.py sigma/rules/crypto_mining.yml

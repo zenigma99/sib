@@ -209,7 +209,8 @@ mkdir -p ~/sib-collector/config
 scp collectors/config/config.alloy user@remote:~/sib-collector/config/
 # Edit config.alloy - replace SIB_SERVER_IP with your SIB server IP
 
-scp collectors/compose.yaml user@remote:~/sib-collector/
+# Copy compose file (use compose-vm.yaml or compose-grafana.yaml based on your stack)
+scp collectors/compose-vm.yaml user@remote:~/sib-collector/compose.yaml
 
 # Start the collector
 ssh user@remote "cd ~/sib-collector && HOSTNAME=\$(hostname) docker compose up -d"
@@ -250,11 +251,13 @@ ssh user@remote "systemctl status alloy"
 ### Verify Data in SIB
 
 ```bash
-# Query Loki for collector data
-curl -s "http://localhost:3100/loki/api/v1/label/host/values"
+# Query VictoriaLogs for collector data (default stack)
+curl -s "http://localhost:9428/select/logsql/query?query=*" | head
 
-# Check metrics in Prometheus
-curl -s 'http://localhost:9090/api/v1/query?query=node_uname_info{collector="alloy"}'
+# Check metrics in VictoriaMetrics (default stack)
+curl -s 'http://localhost:8428/api/v1/query?query=node_uname_info'
+
+# Or for Grafana stack: Loki at :3100, Prometheus at :9090
 ```
 
 ### Fleet Overview Dashboard

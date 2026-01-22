@@ -393,14 +393,15 @@ You'll see credential access attempts, container escapes, persistence mechanisms
 
 ```bash
 # Installation
-make install              # Install all stacks
-make install-detection    # Install Falco + Falcosidekick
-make install-storage      # Install Loki + Prometheus
-make install-grafana      # Install unified Grafana
+make install               # Install all stacks (uses STACK setting)
+make install-detection     # Install Falco + Falcosidekick
+make install-storage-vm    # Install VictoriaLogs + VictoriaMetrics (default)
+make install-storage-grafana # Install Loki + Prometheus (alternative)
+make install-grafana       # Install unified Grafana
 
 # Demo & Testing
-make demo                 # Generate sample security events
-make demo-quick           # Quick demo (fewer events)
+make demo                  # Generate sample security events
+make demo-quick            # Quick demo (fewer events)
 
 # Threat Intelligence
 make update-threatintel   # Update IOC feeds

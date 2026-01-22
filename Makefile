@@ -460,7 +460,13 @@ doctor: ## Diagnose common issues
 
 logs: ## Tail logs from all stacks
 	@echo "$(CYAN)Tailing all stack logs (Ctrl+C to stop)...$(RESET)"
-	@docker compose -f detection/compose.yaml -f alerting/compose.yaml -f storage/compose.yaml -f grafana/compose.yaml logs -f
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	STACK=$${STACK:-vm}; \
+	if [ "$$STACK" = "vm" ]; then \
+		docker compose -f detection/compose.yaml -f alerting/compose.yaml -f storage/compose-vm.yaml -f grafana/compose.yaml logs -f; \
+	else \
+		docker compose -f detection/compose.yaml -f alerting/compose.yaml -f storage/compose-grafana.yaml -f grafana/compose.yaml logs -f; \
+	fi
 
 logs-falco: ## Tail Falco logs
 	@cd detection && $(DOCKER_COMPOSE) logs -f
