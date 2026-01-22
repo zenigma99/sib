@@ -17,9 +17,14 @@ jobs:
           set -euo pipefail
           docker compose -f detection/compose.yaml config >/dev/null
           docker compose -f alerting/compose.yaml config >/dev/null
-          docker compose -f storage/compose.yaml config >/dev/null
+          # VM stack (default)
+          docker compose -f storage/compose-vm.yaml config >/dev/null
+          docker compose -f collectors/compose-vm.yaml config >/dev/null
+          # Grafana stack (alternative)
+          docker compose -f storage/compose-grafana.yaml config >/dev/null
+          docker compose -f collectors/compose-grafana.yaml config >/dev/null
+          # Common
           docker compose -f grafana/compose.yaml config >/dev/null
-          docker compose -f collectors/compose.yaml config >/dev/null
           docker compose -f ansible/compose.yaml config >/dev/null
           docker compose -f analysis/compose.yaml config >/dev/null
 
