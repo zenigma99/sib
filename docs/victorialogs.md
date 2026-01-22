@@ -1,55 +1,76 @@
 ---
 layout: default
-title: VictoriaLogs Backend - SIEM in a Box
+title: VictoriaMetrics Stack - SIEM in a Box
 ---
 
-# VictoriaLogs Backend
+# VictoriaMetrics Stack
 
-Use VictoriaLogs as an alternative log storage backend to Loki.
+Use VictoriaLogs and/or VictoriaMetrics as alternative storage backends.
 
 [← Back to Home](index.md)
 
 ---
 
-## Why VictoriaLogs
+## Why VictoriaMetrics?
 
+**VictoriaLogs** (alternative to Loki):
 - Fast full‑text search over large volumes
 - Better handling of high‑cardinality fields
 - LogsQL support for analytics‑style queries
+
+**VictoriaMetrics** (alternative to Prometheus):
+- 10x lower memory usage
+- Better compression (stores more in less disk space)
+- Faster queries on large datasets
+- PromQL-compatible (existing dashboards work)
 
 ---
 
 ## Quick Start (Recommended)
 
-Set `LOGS_ENDPOINT=victorialogs` in your `.env` file, then run `make install`:
+### Option 1: VictoriaLogs only (with Prometheus)
 
 ```bash
-# Edit .env (default is loki, change to victorialogs)
-sed -i 's/LOGS_ENDPOINT=loki/LOGS_ENDPOINT=victorialogs/' .env
+# Edit .env
+LOGS_ENDPOINT=victorialogs
+METRICS_ENDPOINT=prometheus  # default
 
-# Install everything - storage, Grafana, alerting, detection
+make install
+```
+
+### Option 2: Full VictoriaMetrics Stack (recommended for low-resource systems)
+
+```bash
+# Edit .env
+LOGS_ENDPOINT=victorialogs
+METRICS_ENDPOINT=victoriametrics
+
 make install
 ```
 
 This automatically:
-- Installs VictoriaLogs + Prometheus (instead of Loki)
+- Installs VictoriaLogs + VictoriaMetrics
 - Configures Falcosidekick to send alerts to VictoriaLogs
-- Sets up Grafana with VictoriaLogs datasource
+- Sets up Grafana with both VictoriaLogs and VictoriaMetrics datasources
 - Provisions VictoriaLogs-compatible dashboards
 
 ---
 
 ## Manual Setup
 
-### 1) Enable the VictoriaLogs Storage Stack
+### 1) Enable the VictoriaMetrics Storage Stack
 
 ```bash
+# VictoriaLogs + Prometheus
 make install-storage-victorialogs
+
+# OR: Full VictoriaMetrics stack (VictoriaLogs + VictoriaMetrics)
+make install-storage-victoriametrics
 ```
 
 This starts:
 - **VictoriaLogs** (port 9428 by default)
-- **Prometheus** (port 9090)
+- **VictoriaMetrics** or **Prometheus** (port 8428 or 9090)
 
 ---
 
@@ -133,6 +154,7 @@ To switch from VictoriaLogs back to Loki:
 ```bash
 # Edit .env
 LOGS_ENDPOINT=loki
+METRICS_ENDPOINT=prometheus
 
 # Reinstall or manually switch
 make use-loki-output
@@ -145,9 +167,12 @@ make use-loki-datasource
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LOGS_ENDPOINT` | `loki` | Storage backend: `loki` or `victorialogs` |
+| `LOGS_ENDPOINT` | `loki` | Log storage: `loki` or `victorialogs` |
+| `METRICS_ENDPOINT` | `prometheus` | Metrics storage: `prometheus` or `victoriametrics` |
 | `VICTORIALOGS_PORT` | `9428` | VictoriaLogs HTTP port |
 | `VICTORIALOGS_RETENTION_PERIOD` | `168h` | Log retention (7 days) |
+| `VICTORIAMETRICS_PORT` | `8428` | VictoriaMetrics HTTP port |
+| `VICTORIAMETRICS_RETENTION_PERIOD` | `15d` | Metrics retention |
 
 ---
 

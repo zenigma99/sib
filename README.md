@@ -105,18 +105,27 @@ make install
 
 ### Storage Backend
 
-By default, SIB uses **Loki** as the log storage backend (the stack was built around it). To use VictoriaLogs instead, edit `.env`:
+By default, SIB uses **Loki + Prometheus**. For a lightweight alternative, you can switch to the full **VictoriaMetrics stack**:
 
 ```bash
-# In .env - choose your storage backend
+# In .env - choose your storage backends
 LOGS_ENDPOINT=loki          # Default - Loki (Grafana-native)
 LOGS_ENDPOINT=victorialogs  # Alternative - VictoriaLogs (lightweight, fast)
+
+METRICS_ENDPOINT=prometheus      # Default - Prometheus
+METRICS_ENDPOINT=victoriametrics # Alternative - VictoriaMetrics (10x less RAM)
+```
+
+**Full VictoriaMetrics mode** (both logs + metrics):
+```bash
+LOGS_ENDPOINT=victorialogs
+METRICS_ENDPOINT=victoriametrics
 ```
 
 The `make install` command automatically:
-- Deploys the correct storage backend (VictoriaLogs or Loki)
+- Deploys the correct storage backend
 - Configures Falcosidekick to send alerts to the chosen backend
-- Sets up Grafana with the appropriate datasource and dashboards
+- Sets up Grafana with the appropriate datasources and dashboards
 
 ## 🌐 Access Points
 
@@ -125,6 +134,7 @@ The `make install` command automatically:
 | **Grafana** | http://localhost:3000 | External (0.0.0.0) |
 | **Sidekick API** | http://localhost:2801 | External (0.0.0.0) |
 | **VictoriaLogs** | http://localhost:9428 | Localhost only |
+| **VictoriaMetrics** | http://localhost:8428 | Localhost only |
 | **Loki** | http://localhost:3100 | Localhost only |
 | **Prometheus** | http://localhost:9090 | Localhost only |
 
@@ -191,13 +201,14 @@ Default Grafana credentials: `admin` / `admin`
 ## 🛠️ Commands
 
 ```bash
-# Installation (reads LOGS_ENDPOINT from .env)
+# Installation (reads LOGS_ENDPOINT and METRICS_ENDPOINT from .env)
 make install              # Install all stacks (auto-configures storage backend)
 make uninstall            # Remove everything (auto-detects storage backend)
 
 # Storage (Manual override)
-make install-storage                   # Install Loki stack
-make install-storage-victorialogs     # Install VictoriaLogs stack
+make install-storage                   # Install Loki + Prometheus
+make install-storage-victorialogs     # Install VictoriaLogs + Prometheus
+make install-storage-victoriametrics  # Install VictoriaLogs + VictoriaMetrics (full VM)
 
 # Management
 make start                # Start all services
@@ -773,4 +784,5 @@ Apache 2.0 License - See [LICENSE](LICENSE) for details.
 - [Falcosidekick](https://github.com/falcosecurity/falcosidekick) - Alert routing
 - [Grafana](https://grafana.com/) - Observability platform
 - [Loki](https://grafana.com/oss/loki/) - Log aggregation
-- [VictoriaLogs](https://github.com/VictoriaMetrics/VictoriaLogs) - Fast log storage (thanks [@valyala](https://github.com/valyala) for the suggestion!)
+- [Prometheus](https://prometheus.io/) - Metrics monitoring
+- [VictoriaMetrics](https://victoriametrics.com/) - Fast metrics & logs storage (thanks [@valyala](https://github.com/valyala) for the suggestion!)

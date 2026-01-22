@@ -1,0 +1,56 @@
+# Storage Stack - VictoriaLogs + VictoriaMetrics (Full VM Stack)
+# Lightweight alternative to Loki + Prometheus with better performance
+# Remote mode: Set STORAGE_BIND=0.0.0.0 to accept connections from collectors
+
+services:
+  victorialogs:
+    image: victoriametrics/victoria-logs:latest
+    container_name: sib-victorialogs
+    restart: unless-stopped
+    ports:
+      - "${STORAGE_BIND:-127.0.0.1}:${VICTORIALOGS_PORT:-9428}:9428"
+    command:
+      - "-storageDataPath=/vlogs"
+      - "-retentionPeriod=${VICTORIALOGS_RETENTION_PERIOD:-168h}"
+    volumes:
+      - victorialogs-data:/vlogs
+    networks:
+      - sib-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9428/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: sib-victoriametrics
+    restart: unless-stopped
+    ports:
+      - "${STORAGE_BIND:-127.0.0.1}:${VICTORIAMETRICS_PORT:-8428}:8428"
+    command:
+      - "-storageDataPath=/vmstorage"
+      - "-retentionPeriod=${VICTORIAMETRICS_RETENTION_PERIOD:-15d}"
+      - "-httpListenAddr=:8428"
+      # Enable Prometheus remote write
+      - "-promscrape.config=/etc/prometheus/prometheus.yml"
+    volumes:
+      - victoriametrics-data:/vmstorage
+      - ./config/prometheus-vm.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - sib-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8428/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  sib-network:
+    external: true
+
+volumes:
+  victorialogs-data:
+  victoriametrics-data:

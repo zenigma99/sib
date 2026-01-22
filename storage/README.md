@@ -1,14 +1,37 @@
 # Storage Stack
 
-This directory contains Loki and Prometheus for storing security data. An optional VictoriaLogs backend is also available.
+This directory contains the storage backends for SIB. Multiple configurations are available:
+
+| Configuration | Logs | Metrics | Use Case |
+|--------------|------|---------|----------|
+| Default | Loki | Prometheus | Standard setup, Grafana-native |
+| VictoriaLogs | VictoriaLogs | Prometheus | Better full-text search |
+| Full VictoriaMetrics | VictoriaLogs | VictoriaMetrics | Lowest resource usage |
 
 ## Components
 
 | Service | Port | Description |
 |---------|------|-------------|
 | **Loki** | 3100 | Log aggregation for security events |
-| **VictoriaLogs** | 9428 | Optional log storage backend (full‑text search) |
+| **VictoriaLogs** | 9428 | Alternative log storage (fast full‑text search) |
 | **Prometheus** | 9090 | Metrics storage |
+| **VictoriaMetrics** | 8428 | Alternative metrics storage (10x less RAM) |
+
+## Quick Start
+
+Configure your preferred backends in `.env`:
+
+```bash
+# Default: Loki + Prometheus
+LOGS_ENDPOINT=loki
+METRICS_ENDPOINT=prometheus
+
+# Full VictoriaMetrics (lowest resources)
+LOGS_ENDPOINT=victorialogs
+METRICS_ENDPOINT=victoriametrics
+```
+
+Then run `make install` - it will automatically use the right compose file.
 
 ## Loki
 
@@ -68,14 +91,19 @@ sum(rate(falcosidekick_outputs_ok[5m])) / sum(rate(falcosidekick_outputs_total[5
 | Loki | 7 days | `config/loki-config.yml` |
 | VictoriaLogs | 7 days | `compose-victorialogs.yaml` (retentionPeriod) |
 | Prometheus | 15 days | `compose.yaml` |
+| VictoriaMetrics | 15 days | `compose-victoriametrics.yaml` (retentionPeriod) |
 
-## VictoriaLogs (Optional)
-
-To run VictoriaLogs instead of Loki:
+## Manual Installation
 
 ```bash
+# Loki + Prometheus (default)
+make install-storage
+
+# VictoriaLogs + Prometheus
 make install-storage-victorialogs
-make use-victorialogs-datasource
+
+# VictoriaLogs + VictoriaMetrics (full VM stack)
+make install-storage-victoriametrics
 ```
 
 Then update Falcosidekick to point at VictoriaLogs:

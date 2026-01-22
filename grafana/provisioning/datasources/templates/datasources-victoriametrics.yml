@@ -1,0 +1,36 @@
+# ==============================================
+# Grafana Datasources for SIB (Full VictoriaMetrics Stack)
+# VictoriaLogs for logs + VictoriaMetrics for metrics
+# ==============================================
+
+apiVersion: 1
+
+datasources:
+  # VictoriaLogs - Security Events/Logs
+  - name: VictoriaLogs
+    type: victoriametrics-logs-datasource
+    uid: victorialogs
+    access: proxy
+    url: http://sib-victorialogs:9428
+    isDefault: true
+    editable: false
+    jsonData:
+      maxLines: 1000
+      timeout: 60
+
+  # VictoriaMetrics - Metrics (Prometheus-compatible)
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://sib-victoriametrics:8428
+    isDefault: false
+    editable: false
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: "2.50.0"
+      cacheLevel: 'High'
+      disableRecordingRules: false
+      incrementalQueryOverlapWindow: 10m

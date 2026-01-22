@@ -27,7 +27,7 @@ help: ## Show this help message
 	@echo "  make $(GREEN)<target>$(RESET)"
 	@echo ""
 	@echo "$(CYAN)Installation:$(RESET)"
-	@grep -E '^(install|install-detection|install-alerting|install-storage|install-storage-victorialogs|install-grafana|install-analysis):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -E '^(install|install-detection|install-alerting|install-storage|install-storage-victorialogs|install-storage-victoriametrics|install-grafana|install-analysis):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Management:$(RESET)"
 	@grep -E '^(start|stop|restart|status|uninstall):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
@@ -42,7 +42,7 @@ help: ## Show this help message
 	@grep -E '^(update-threatintel|convert-sigma):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Utilities:$(RESET)"
-	@grep -E '^(open|info|ps|clean|check-ports|validate|use-loki-datasource|use-victorialogs-datasource|use-loki-output|use-victorialogs-output):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -E '^(open|info|ps|clean|check-ports|validate|use-loki-datasource|use-victorialogs-datasource|use-victoriametrics-datasource|use-prometheus-datasource|use-loki-output|use-victorialogs-output):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Remote Collectors:$(RESET)"
 	@grep -E '^(enable-remote|enable-remote-victorialogs|deploy-collector):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
@@ -76,10 +76,13 @@ install: network ## Install all security stacks
 		echo "$(YELLOW)   Edit .env file and change GRAFANA_ADMIN_PASSWORD$(RESET)"; \
 		echo ""; \
 	fi
-	@# Install storage backend based on LOGS_ENDPOINT (.env)
+	@# Install storage backend based on LOGS_ENDPOINT and METRICS_ENDPOINT (.env)
 	@set -a; . ./.env 2>/dev/null || true; set +a; \
 	LOGS_ENDPOINT=$${LOGS_ENDPOINT:-loki}; \
-	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] || [ "$$LOGS_ENDPOINT" = "victoriametrics" ] || [ "$$LOGS_ENDPOINT" = "victoria" ]; then \
+	METRICS_ENDPOINT=$${METRICS_ENDPOINT:-prometheus}; \
+	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] && [ "$$METRICS_ENDPOINT" = "victoriametrics" ]; then \
+		$(MAKE) --no-print-directory install-storage-victoriametrics; \
+	elif [ "$$LOGS_ENDPOINT" = "victorialogs" ]; then \
 		$(MAKE) --no-print-directory install-storage-victorialogs; \
 	else \
 		$(MAKE) --no-print-directory install-storage; \
@@ -135,14 +138,24 @@ install-storage-victorialogs: network ## Install VictoriaLogs + Prometheus stora
 	@cd storage && $(DOCKER_COMPOSE) -f compose-victorialogs.yaml up -d
 	@echo "$(GREEN)✓ VictoriaLogs storage stack installed$(RESET)"
 
+install-storage-victoriametrics: network ## Install VictoriaLogs + VictoriaMetrics (full VM stack)
+	@echo "$(CYAN)💾 Installing Full VictoriaMetrics Stack (VictoriaLogs + VictoriaMetrics)...$(RESET)"
+	@cd storage && $(DOCKER_COMPOSE) -f compose-victoriametrics.yaml up -d
+	@echo "$(GREEN)✓ Full VictoriaMetrics stack installed$(RESET)"
+
 install-grafana: network ## Install Grafana dashboard
 	@echo "$(CYAN)📊 Installing Grafana...$(RESET)"
 	@cd grafana && $(DOCKER_COMPOSE) up -d
 	@echo "$(GREEN)✓ Grafana installed$(RESET)"
-	@# If LOGS_ENDPOINT is set to victorialogs, switch Grafana datasource accordingly
+	@# Configure datasources based on LOGS_ENDPOINT and METRICS_ENDPOINT
 	@set -a; . ./.env 2>/dev/null || true; set +a; \
 	LOGS_ENDPOINT=$${LOGS_ENDPOINT:-loki}; \
-	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] || [ "$$LOGS_ENDPOINT" = "victoriametrics" ] || [ "$$LOGS_ENDPOINT" = "victoria" ]; then \
+	METRICS_ENDPOINT=$${METRICS_ENDPOINT:-prometheus}; \
+	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] && [ "$$METRICS_ENDPOINT" = "victoriametrics" ]; then \
+		cp grafana/provisioning/datasources/templates/datasources-victoriametrics.yml grafana/provisioning/datasources/datasources.yml; \
+		echo "$(GREEN)✓ Datasources: VictoriaLogs + VictoriaMetrics$(RESET)"; \
+		docker restart sib-grafana >/dev/null 2>&1 || true; \
+	elif [ "$$LOGS_ENDPOINT" = "victorialogs" ]; then \
 		$(MAKE) --no-print-directory use-victorialogs-datasource; \
 	else \
 		$(MAKE) --no-print-directory use-loki-datasource; \
@@ -272,11 +285,14 @@ uninstall-alerting: ## Remove alerting stack and volumes
 
 uninstall-storage: ## Remove storage stack and volumes
 	@echo "$(YELLOW)Removing storage stack...$(RESET)"
-	@# Read LOGS_ENDPOINT from .env to decide which compose file to remove
+	@# Read LOGS_ENDPOINT and METRICS_ENDPOINT from .env to decide which compose file to remove
 	@set -a; . ./.env 2>/dev/null || true; set +a; \
 	LOGS_ENDPOINT=$${LOGS_ENDPOINT:-loki}; \
+	METRICS_ENDPOINT=$${METRICS_ENDPOINT:-prometheus}; \
 	cd storage; \
-	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] || [ "$$LOGS_ENDPOINT" = "victoriametrics" ] || [ "$$LOGS_ENDPOINT" = "victoria" ]; then \
+	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] && [ "$$METRICS_ENDPOINT" = "victoriametrics" ]; then \
+		$(DOCKER_COMPOSE) -f compose-victoriametrics.yaml down -v; \
+	elif [ "$$LOGS_ENDPOINT" = "victorialogs" ]; then \
 		$(DOCKER_COMPOSE) -f compose-victorialogs.yaml down -v; \
 	else \
 		$(DOCKER_COMPOSE) down -v; \
@@ -580,6 +596,19 @@ use-victorialogs-datasource: ## Switch Grafana datasource to VictoriaLogs
 	@docker restart sib-grafana >/dev/null 2>&1 || true
 	@echo "$(GREEN)✓ Grafana datasource set to VictoriaLogs$(RESET)"
 
+use-victoriametrics-datasource: ## Switch Grafana metrics datasource to VictoriaMetrics
+	@echo "$(CYAN)Configuring VictoriaMetrics as Prometheus datasource...$(RESET)"
+	@# Update the Prometheus datasource URL to point to VictoriaMetrics
+	@sed -i.bak 's|url: http://sib-prometheus:9090|url: http://sib-victoriametrics:8428|g' grafana/provisioning/datasources/datasources.yml && rm -f grafana/provisioning/datasources/datasources.yml.bak
+	@docker restart sib-grafana >/dev/null 2>&1 || true
+	@echo "$(GREEN)✓ Grafana metrics datasource set to VictoriaMetrics$(RESET)"
+
+use-prometheus-datasource: ## Switch Grafana metrics datasource back to Prometheus
+	@echo "$(CYAN)Configuring Prometheus as metrics datasource...$(RESET)"
+	@sed -i.bak 's|url: http://sib-victoriametrics:8428|url: http://sib-prometheus:9090|g' grafana/provisioning/datasources/datasources.yml && rm -f grafana/provisioning/datasources/datasources.yml.bak
+	@docker restart sib-grafana >/dev/null 2>&1 || true
+	@echo "$(GREEN)✓ Grafana metrics datasource set to Prometheus$(RESET)"
+
 use-loki-output: ## Point Falcosidekick output to Loki
 	@sed -i.bak 's|^  hostport:.*|  hostport: "http://sib-loki:3100"|' alerting/config/config.yaml && rm -f alerting/config/config.yaml.bak
 	@docker restart sib-sidekick >/dev/null 2>&1 || true
@@ -605,7 +634,7 @@ update: ## Pull latest images and restart all stacks
 	@echo "$(GREEN)✓ All stacks updated$(RESET)"
 
 .PHONY: help network install install-detection install-alerting install-storage install-grafana install-analysis \
-	install-storage-victorialogs \
+	install-storage-victorialogs install-storage-victoriametrics \
 	start start-detection start-alerting start-storage start-storage-victorialogs start-grafana start-analysis \
 	stop stop-detection stop-alerting stop-storage stop-storage-victorialogs stop-grafana stop-analysis \
         restart restart-detection restart-alerting restart-storage restart-grafana restart-analysis \
@@ -613,7 +642,8 @@ update: ## Pull latest images and restart all stacks
 	status health doctor logs logs-falco logs-sidekick logs-storage logs-storage-victorialogs logs-grafana logs-analysis \
         shell-falco shell-grafana shell-loki shell-analysis \
         test-alert demo demo-quick test-rules open info ps check-ports validate clean update \
-	use-loki-datasource use-victorialogs-datasource use-loki-output use-victorialogs-output \
+	use-loki-datasource use-victorialogs-datasource use-victoriametrics-datasource use-prometheus-datasource \
+	use-loki-output use-victorialogs-output \
 	enable-remote enable-remote-victorialogs deploy-collector
 
 # ==================== Remote Collectors ====================
