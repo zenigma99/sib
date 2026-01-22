@@ -18,12 +18,16 @@ title: SIEM in a Box
 | Guide | Description |
 |-------|-------------|
 | [Installation](installation.md) | Complete installation guide with prerequisites |
+| [Minimal Install](minimal-install.md) | Core stack only, smallest footprint |
 | [Quick Start](quickstart.md) | Get started in 60 seconds with demo mode |
 | [Fleet Management](fleet.md) | Deploy agents across your infrastructure |
 | [AI Analysis](ai-analysis.md) | LLM-powered alert analysis |
 | [Sigma Rules](sigma-rules.md) | Convert community detection rules |
 | [Threat Intelligence](threat-intel.md) | IOC feeds and blocklists |
+| [Security Hardening](security-hardening.md) | Production hardening checklist |
 | [Troubleshooting](troubleshooting.md) | Common issues and solutions |
+| [FAQ](faq.md) | Common questions and answers |
+| [Kubernetes Deployment](https://github.com/matijazezelj/sib-k8s) | Run SIB on Kubernetes |
 
 ---
 

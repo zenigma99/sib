@@ -22,6 +22,12 @@ Run the built-in diagnostics:
 # Check service status
 make status
 
+# Quick health check
+make health
+
+# Diagnose common issues
+make doctor
+
 # View all logs
 make logs
 ```

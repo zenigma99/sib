@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  compose-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose files
+        run: |
+          set -euo pipefail
+          docker compose -f detection/compose.yaml config >/dev/null
+          docker compose -f alerting/compose.yaml config >/dev/null
+          docker compose -f storage/compose.yaml config >/dev/null
+          docker compose -f grafana/compose.yaml config >/dev/null
+          docker compose -f collectors/compose.yaml config >/dev/null
+          docker compose -f ansible/compose.yaml config >/dev/null
+          docker compose -f analysis/compose.yaml config >/dev/null
+
+      - name: Check docs links (basic)
+        run: |
+          set -euo pipefail
+          grep -R "(docs/" -n README.md >/dev/null || true
+          test -f docs/index.md
+          test -f docs/installation.md
+          test -f docs/quickstart.md
+          test -f docs/troubleshooting.md

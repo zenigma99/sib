@@ -144,12 +144,20 @@ Expected output:
 # Check status of all services
 make status
 
+# Quick health check
+make health
+
+# Diagnose common issues
+make doctor
+
 # View logs from all services
 make logs
 
 # View logs from specific service
 make logs-falco
 make logs-sidekick
+make logs-storage
+make logs-grafana
 
 # Restart all services
 make restart

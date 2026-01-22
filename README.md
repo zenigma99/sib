@@ -109,9 +109,8 @@ make install
 |---------|-----|---------|
 | **Grafana** | http://localhost:3000 | External (0.0.0.0) |
 | **Sidekick API** | http://localhost:2801 | External (0.0.0.0) |
-
-| Loki | http://localhost:3100 | Localhost only |
-| Prometheus | http://localhost:9090 | Localhost only |
+| **Loki** | http://localhost:3100 | Localhost only |
+| **Prometheus** | http://localhost:9090 | Localhost only |
 
 Default Grafana credentials: `admin` / `admin`
 
@@ -131,6 +130,17 @@ Default Grafana credentials: `admin` / `admin`
 | **Process Anomalies** | Unexpected binaries, shell spawning |
 | **Persistence** | Cron modifications, systemd changes |
 | **Cryptomining** | Mining processes, pool connections |
+
+## 🔍 Comparison (Wazuh, Splunk, Elastic)
+
+| Tool | Pros | Cons | Best for |
+|------|------|------|----------|
+| **SIB** | One-command setup, Falco runtime detection, curated Grafana dashboards, self-hosted | Not a full log SIEM platform, Linux-only detection | Homelabs, startups, lean SecOps teams | 
+| **Wazuh** | Strong host-based SIEM, broad OS support, built-in agents | Heavier setup, more tuning required, multi-component stack | Organizations needing HIDS + log SIEM | 
+| **Splunk** | Powerful search/analytics, enterprise-grade scale | Expensive at scale, complex operations | Large enterprises with budget and dedicated SIEM team | 
+| **Elastic SIEM** | Flexible, open-source core, great search | Requires careful sizing/tuning, operational overhead | Teams already using Elastic Stack | 
+
+**Takeaway:** SIB prioritizes **speed of deployment** and **actionable runtime detection**. For large-scale log analytics and complex compliance reporting, Wazuh/Splunk/Elastic may be a better fit.
 
 ## 📊 Dashboards
 
@@ -172,11 +182,15 @@ make start                # Start all services
 make stop                 # Stop all services
 make restart              # Restart all services
 make status               # Show service status
+make health               # Quick health check
+make doctor               # Diagnose common issues
 
 # Logs
 make logs                 # Tail all logs
 make logs-falco           # Tail Falco logs
 make logs-sidekick        # Tail Falcosidekick logs
+make logs-storage         # Tail Loki + Prometheus logs
+make logs-grafana         # Tail Grafana logs
 
 # Demo & Testing
 make demo                 # Run comprehensive security demo (~30 events)
@@ -196,6 +210,17 @@ make logs-analysis        # View analysis API logs
 make open                 # Open Grafana in browser
 make info                 # Show all endpoints
 ```
+
+## 📚 Documentation
+
+- [docs/installation.md](docs/installation.md)
+- [docs/minimal-install.md](docs/minimal-install.md)
+- [docs/quickstart.md](docs/quickstart.md)
+- [docs/security-hardening.md](docs/security-hardening.md)
+- [docs/troubleshooting.md](docs/troubleshooting.md)
+- [docs/faq.md](docs/faq.md)
+- [ROADMAP.md](ROADMAP.md)
+- Kubernetes deployment: [sib-k8s](https://github.com/matijazezelj/sib-k8s)
 
 ## 📁 Project Structure
 
@@ -297,6 +322,16 @@ SIDEKICK_PORT=2801
 - Grafana and Sidekick API are externally accessible (for fleet support)
 - Falco requires privileged access for syscall monitoring
 - Change default Grafana password in production
+
+### Hardening Checklist
+
+- Restrict external ports to trusted IPs
+- Put Grafana behind TLS + auth (reverse proxy)
+- Rotate default credentials before production use
+- Set retention limits for Loki/Prometheus
+- Back up Grafana and Loki volumes
+
+See [docs/security-hardening.md](docs/security-hardening.md) for full guidance.
 
 ## 🤖 AI-Powered Alert Analysis (Beta)
 
