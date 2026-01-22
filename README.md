@@ -6,13 +6,13 @@
 
 🌐 **Website**: [in-a-box-tools.tech](https://in-a-box-tools.tech)
 
-SIB provides a complete, self-hosted security monitoring stack for detecting threats in real-time. Built on Falco's runtime security engine with Loki for log storage and Grafana for visualization.
+SIB provides a complete, self-hosted security monitoring stack for detecting threats in real-time. Built on Falco's runtime security engine with Loki for log storage and Grafana for visualization. VictoriaLogs is available as an alternative backend.
 
 ## 🌟 Features
 
 - **Runtime Security**: Detect suspicious behavior in real-time using Falco's eBPF-based syscall monitoring
 - **Alert Forwarding**: Falcosidekick routes alerts to 50+ destinations (Slack, PagerDuty, Loki, etc.)
-- **Log Aggregation**: Loki stores security events with efficient label-based querying
+- **Log Aggregation**: Loki (default) or VictoriaLogs stores security events with efficient querying
 - **Pre-built Dashboards**: Grafana dashboards for security overview and event exploration
 - **MITRE ATT&CK Coverage**: Dashboard mapping detections to the ATT&CK framework
 - **Demo Mode**: Generate realistic security events to see dashboards in action
@@ -32,8 +32,8 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────┐     ┌─────────────────┐     ┌───────────────────────────┐ │
-│  │    Falco     │     │  Falcosidekick  │     │          Loki             │ │
-│  │  (Detection) │────▶│   (Fan-out)     │────▶│    (Log Storage)          │ │
+│  │    Falco     │     │  Falcosidekick  │     │   VictoriaLogs / Loki     │ │
+│  │  (Detection) │────▶│   (Fan-out)     │────▶│      (Log Storage)        │ │
 │  │  modern_ebpf │     │                 │     │                           │ │
 │  └──────────────┘     └─────────────────┘     └───────────────────────────┘ │
 │                               │                            │                 │
@@ -103,16 +103,34 @@ make install
 ./scripts/test-pipeline.sh
 ```
 
+### Storage Backend
+
+By default, SIB uses **Loki** as the log storage backend (the stack was built around it). To use VictoriaLogs instead, edit `.env`:
+
+```bash
+# In .env - choose your storage backend
+LOGS_ENDPOINT=loki          # Default - Loki (Grafana-native)
+LOGS_ENDPOINT=victorialogs  # Alternative - VictoriaLogs (lightweight, fast)
+```
+
+The `make install` command automatically:
+- Deploys the correct storage backend (VictoriaLogs or Loki)
+- Configures Falcosidekick to send alerts to the chosen backend
+- Sets up Grafana with the appropriate datasource and dashboards
+
 ## 🌐 Access Points
 
 | Service | URL | Binding |
 |---------|-----|---------|
 | **Grafana** | http://localhost:3000 | External (0.0.0.0) |
 | **Sidekick API** | http://localhost:2801 | External (0.0.0.0) |
+| **VictoriaLogs** | http://localhost:9428 | Localhost only |
 | **Loki** | http://localhost:3100 | Localhost only |
 | **Prometheus** | http://localhost:9090 | Localhost only |
 
 Default Grafana credentials: `admin` / `admin`
+
+> **Note:** Only the storage backend you selected via `LOGS_ENDPOINT` will be running (VictoriaLogs or Loki, not both).
 
 > ⚠️ **Fleet Security Note:** Sidekick API (2801) is exposed externally so fleet hosts can send events. Use firewall rules to restrict access to your fleet nodes only:
 > ```bash
@@ -173,9 +191,13 @@ Default Grafana credentials: `admin` / `admin`
 ## 🛠️ Commands
 
 ```bash
-# Installation
-make install              # Install all stacks
-make uninstall            # Remove everything
+# Installation (reads LOGS_ENDPOINT from .env)
+make install              # Install all stacks (auto-configures storage backend)
+make uninstall            # Remove everything (auto-detects storage backend)
+
+# Storage (Manual override)
+make install-storage                   # Install Loki stack
+make install-storage-victorialogs     # Install VictoriaLogs stack
 
 # Management
 make start                # Start all services
@@ -190,6 +212,7 @@ make logs                 # Tail all logs
 make logs-falco           # Tail Falco logs
 make logs-sidekick        # Tail Falcosidekick logs
 make logs-storage         # Tail Loki + Prometheus logs
+make logs-storage-victorialogs     # Tail VictoriaLogs + Prometheus logs
 make logs-grafana         # Tail Grafana logs
 
 # Demo & Testing
@@ -208,6 +231,10 @@ make logs-analysis        # View analysis API logs
 
 # Utilities
 make open                 # Open Grafana in browser
+make use-victorialogs-datasource   # Switch Grafana to VictoriaLogs
+make use-loki-datasource           # Switch Grafana back to Loki
+make use-victorialogs-output       # Send alerts to VictoriaLogs
+make use-loki-output               # Send alerts back to Loki
 make info                 # Show all endpoints
 ```
 
@@ -221,13 +248,14 @@ make info                 # Show all endpoints
 - [docs/faq.md](docs/faq.md)
 - [ROADMAP.md](ROADMAP.md)
 - Kubernetes deployment: [sib-k8s](https://github.com/matijazezelj/sib-k8s)
+- VictoriaLogs backend: [docs/victorialogs.md](docs/victorialogs.md)
 
 ## 📁 Project Structure
 
 ```
 sib/
 ├── Makefile                    # Main entry point
-├── .env.example                # Environment template
+├── .env.example                # Environment template (LOGS_ENDPOINT config)
 ├── scripts/
 │   └── test-pipeline.sh        # Pipeline verification script
 ├── detection/                  # Falco stack
@@ -239,9 +267,11 @@ sib/
 ├── alerting/                   # Falcosidekick + UI + Redis
 │   ├── compose.yaml
 │   └── config/
-│       └── config.yaml         # Sidekick -> Loki config
-├── storage/                    # Loki + Prometheus
-│   ├── compose.yaml
+│       ├── config.yaml.template  # Sidekick config template
+│       └── config.yaml         # Generated from template on install
+├── storage/                    # Log storage backends
+│   ├── compose.yaml            # Loki + Prometheus
+│   ├── compose-victorialogs.yaml  # VictoriaLogs + Prometheus
 │   └── config/
 │       ├── loki-config.yml
 │       └── prometheus.yml
@@ -249,12 +279,10 @@ sib/
 │   ├── compose.yaml
 │   └── provisioning/
 │       ├── datasources/
-│       │   └── datasources.yml
+│       │   └── templates/      # Datasource templates
 │       └── dashboards/
-│           └── json/
-│               ├── security-overview.json
-│               ├── events-explorer.json
-│               └── fleet-overview.json
+│           ├── loki/           # Loki-specific dashboards
+│           └── victorialogs/   # VictoriaLogs-specific dashboards
 ├── ansible/                    # Fleet management (Dockerized)
 │   ├── inventory/
 │   │   ├── hosts.yml.example   # Host inventory template

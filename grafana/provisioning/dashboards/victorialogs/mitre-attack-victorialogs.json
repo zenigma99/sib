@@ -11,8 +11,8 @@
   "panels": [
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "gridPos": {
         "h": 5,
@@ -27,7 +27,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "# \ud83c\udfaf MITRE ATT&CK Detection Coverage\n\nThis dashboard maps detected security events to the **MITRE ATT&CK framework**. Each tactic shows the number of events detected in the selected time range.\n\n**Green** = Events detected | **Red** = No events (potential gap)\n\n[MITRE ATT&CK Reference](https://attack.mitre.org/)",
+        "content": "# 🎯 MITRE ATT&CK Detection Coverage\n\nThis dashboard maps detected security events to the **MITRE ATT&CK framework**. Each tactic shows the number of events detected in the selected time range.\n\n**Green** = Events detected | **Red** = No events (potential gap)\n\n[MITRE ATT&CK Reference](https://attack.mitre.org/)",
         "mode": "markdown"
       },
       "pluginVersion": "11.4.0",
@@ -37,8 +37,8 @@
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -55,8 +55,8 @@
               }
             ]
           },
-          "unit": "dateTimeFromNow",
-          "displayName": "Events"
+          "unit": "none",
+          "displayName": "Total Events"
         },
         "overrides": []
       },
@@ -76,7 +76,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/^Time$/",
+          "fields": "",
           "values": false
         },
         "showPercentChange": false,
@@ -87,21 +87,21 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} [1m])",
-          "queryType": "instant",
+          "expr": "* | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udfe2 Last Event",
+      "title": "📊 Total Events",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -157,21 +157,21 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", priority=\"Critical\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall priority:Critical | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udea8 Critical",
+      "title": "🚨 Critical",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -227,21 +227,21 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", priority=\"Error\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall priority:Error | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\u26a0\ufe0f Error",
+      "title": "⚠️ Error",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -293,22 +293,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_initial_access.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_initial_access | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udeaa Initial Access",
+      "title": "🚪 Initial Access",
       "description": "TA0001 - Adversaries trying to get into your network",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -360,22 +360,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_execution.*|.*T1059.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_execution | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\u26a1 Execution",
+      "title": "⚡ Execution",
       "description": "TA0002 - Adversaries trying to run malicious code",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -427,22 +427,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_persistence.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_persistence | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd04 Persistence",
+      "title": "🔄 Persistence",
       "description": "TA0003 - Adversaries trying to maintain their foothold",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -494,22 +494,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_privilege_escalation.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_privilege_escalation | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\u2b06\ufe0f Privilege Escalation",
+      "title": "⬆️ Privilege Escalation",
       "description": "TA0004 - Adversaries trying to gain higher-level permissions",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -561,22 +561,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_defense_evasion.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_defense_evasion | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83e\udd77 Defense Evasion",
+      "title": "🥷 Defense Evasion",
       "description": "TA0005 - Adversaries trying to avoid being detected",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -628,22 +628,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_credential_access.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_credential_access | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd11 Credential Access",
+      "title": "🔑 Credential Access",
       "description": "TA0006 - Adversaries trying to steal account names and passwords",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -695,22 +695,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_discovery.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_discovery | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd0d Discovery",
+      "title": "🔍 Discovery",
       "description": "TA0007 - Adversaries trying to figure out your environment",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -762,22 +762,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_lateral_movement.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_lateral_movement | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd00 Lateral Movement",
+      "title": "🔀 Lateral Movement",
       "description": "TA0008 - Adversaries trying to move through your environment",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -829,22 +829,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_collection.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_collection | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udce6 Collection",
+      "title": "📦 Collection",
       "description": "TA0009 - Adversaries trying to gather data of interest",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -896,22 +896,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_command_and_control.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_command_and_control | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udce1 Command & Control",
+      "title": "📡 Command & Control",
       "description": "TA0011 - Adversaries trying to communicate with compromised systems",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -963,22 +963,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_exfiltration.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_exfiltration | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udce4 Exfiltration",
+      "title": "📤 Exfiltration",
       "description": "TA0010 - Adversaries trying to steal data",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -1030,22 +1030,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_impact.*\"} [$__range])",
-          "queryType": "instant",
+          "expr": "source:syscall hostname:$hostname tags:mitre_impact | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udca5 Impact",
+      "title": "💥 Impact",
       "description": "TA0012 - Adversaries trying to manipulate, interrupt, or destroy systems and data",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -1168,57 +1168,62 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "sum by (tactic) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_execution|shell.*spawn\" | label_format tactic=\"Execution\" [$__interval]))",
+          "expr": "source:syscall hostname:$hostname tags:mitre_execution | stats count()",
           "legendFormat": "Execution",
+          "queryType": "statsRange",
           "refId": "A"
         },
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "sum by (tactic) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_credential_access|shadow|passwd\" | label_format tactic=\"Credential Access\" [$__interval]))",
+          "expr": "source:syscall hostname:$hostname tags:mitre_credential_access | stats count()",
           "legendFormat": "Credential Access",
+          "queryType": "statsRange",
           "refId": "B"
         },
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "sum by (tactic) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_persistence|cron|systemd\" | label_format tactic=\"Persistence\" [$__interval]))",
+          "expr": "source:syscall hostname:$hostname tags:mitre_persistence | stats count()",
           "legendFormat": "Persistence",
+          "queryType": "statsRange",
           "refId": "C"
         },
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "sum by (tactic) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_impact|crypto.*miner\" | label_format tactic=\"Impact\" [$__interval]))",
+          "expr": "source:syscall hostname:$hostname tags:mitre_impact | stats count()",
           "legendFormat": "Impact",
+          "queryType": "statsRange",
           "refId": "D"
         },
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "sum by (tactic) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_privilege_escalation|privileged\" | label_format tactic=\"Privilege Escalation\" [$__interval]))",
+          "expr": "source:syscall hostname:$hostname tags:mitre_privilege_escalation | stats count()",
           "legendFormat": "Privilege Escalation",
+          "queryType": "statsRange",
           "refId": "E"
         }
       ],
-      "title": "\ud83d\udcca Events by MITRE Tactic Over Time",
+      "title": "📊 Events by MITRE Tactic Over Time",
       "type": "timeseries"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -1320,16 +1325,16 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "topk(20, sum by (rule) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} [$__range])))",
+          "expr": "source:syscall hostname:$hostname | stats by (rule) count()",
           "legendFormat": "{{rule}}",
-          "queryType": "instant",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83c\udfaf Top Detected Techniques",
+      "title": "🎯 Top Detected Techniques",
       "transformations": [
         {
           "id": "labelsToFields",
@@ -1372,8 +1377,8 @@
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -1427,23 +1432,23 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "sum by (priority) (count_over_time({source=\"syscall\", hostname=~\"$hostname\"} [$__range]))",
+          "expr": "source:syscall hostname:$hostname | stats by (priority) count()",
           "legendFormat": "{{priority}}",
-          "queryType": "instant",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udcc8 Events by Priority",
+      "title": "📈 Events by Priority",
       "transformations": [],
       "type": "piechart"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "gridPos": {
         "h": 6,
@@ -1468,20 +1473,21 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "{source=\"syscall\", priority=~\"Critical|Error\"}",
+          "expr": "source:syscall hostname:$hostname (priority:Critical or priority:Error)",
+          "queryType": "instant",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udea8 Critical & Error Events",
+      "title": "🚨 Critical & Error Events",
       "type": "logs"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "gridPos": {
         "h": 8,
@@ -1506,14 +1512,15 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "{source=\"syscall\", hostname=~\"$hostname\"} |= \"\"",
+          "expr": "source:syscall hostname:$hostname",
+          "queryType": "instant",
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd0d MITRE-Tagged Events (Raw Logs)",
+      "title": "🔍 MITRE-Tagged Events (Raw Logs)",
       "type": "logs"
     }
   ],
@@ -1522,30 +1529,20 @@
   "tags": [
     "security",
     "mitre",
-    "attack"
+    "attack",
+    "victorialogs"
   ],
   "templating": {
     "list": [
       {
-        "allValue": ".*",
         "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
+          "text": "*",
+          "value": "*"
         },
-        "datasource": {
-          "type": "loki",
-          "uid": "loki"
-        },
-        "definition": "label_values({source=\"syscall\"}, hostname)",
-        "includeAll": true,
-        "multi": false,
         "name": "hostname",
-        "options": [],
-        "query": "label_values({source=\"syscall\"}, hostname)",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
+        "label": "Hostname",
+        "query": "*",
+        "type": "textbox"
       }
     ]
   },
@@ -1555,8 +1552,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "MITRE ATT&CK Coverage (Loki)",
-  "uid": "mitre-attack",
+  "title": "MITRE ATT&CK Coverage (VictoriaLogs)",
+  "uid": "mitre-attack-victorialogs",
   "version": 1,
   "weekStart": ""
 }

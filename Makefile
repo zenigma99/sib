@@ -27,13 +27,13 @@ help: ## Show this help message
 	@echo "  make $(GREEN)<target>$(RESET)"
 	@echo ""
 	@echo "$(CYAN)Installation:$(RESET)"
-	@grep -E '^(install|install-detection|install-alerting|install-storage|install-grafana|install-analysis):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -E '^(install|install-detection|install-alerting|install-storage|install-storage-victorialogs|install-grafana|install-analysis):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Management:$(RESET)"
 	@grep -E '^(start|stop|restart|status|uninstall):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Health & Logs:$(RESET)"
-	@grep -E '^(health|doctor|logs|logs-falco|logs-sidekick|logs-storage|logs-grafana|logs-analysis):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -E '^(health|doctor|logs|logs-falco|logs-sidekick|logs-storage|logs-storage-victorialogs|logs-grafana|logs-analysis):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Testing & Demo:$(RESET)"
 	@grep -E '^(test-alert|demo|demo-quick|test-rules):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
@@ -42,10 +42,10 @@ help: ## Show this help message
 	@grep -E '^(update-threatintel|convert-sigma):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Utilities:$(RESET)"
-	@grep -E '^(open|info|ps|clean|check-ports|validate):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -E '^(open|info|ps|clean|check-ports|validate|use-loki-datasource|use-victorialogs-datasource|use-loki-output|use-victorialogs-output):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Remote Collectors:$(RESET)"
-	@grep -E '^(enable-remote|deploy-collector):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@grep -E '^(enable-remote|enable-remote-victorialogs|deploy-collector):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(CYAN)Fleet Management (Ansible):$(RESET)"
 	@grep -E '^(fleet-build|deploy-fleet|update-rules|fleet-health|fleet-docker-check|remove-fleet|fleet-ping|fleet-shell):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
@@ -76,7 +76,14 @@ install: network ## Install all security stacks
 		echo "$(YELLOW)   Edit .env file and change GRAFANA_ADMIN_PASSWORD$(RESET)"; \
 		echo ""; \
 	fi
-	@$(MAKE) --no-print-directory install-storage
+	@# Install storage backend based on LOGS_ENDPOINT (.env)
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	LOGS_ENDPOINT=$${LOGS_ENDPOINT:-loki}; \
+	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] || [ "$$LOGS_ENDPOINT" = "victoriametrics" ] || [ "$$LOGS_ENDPOINT" = "victoria" ]; then \
+		$(MAKE) --no-print-directory install-storage-victorialogs; \
+	else \
+		$(MAKE) --no-print-directory install-storage; \
+	fi
 	@$(MAKE) --no-print-directory install-grafana
 	@$(MAKE) --no-print-directory install-alerting
 	@$(MAKE) --no-print-directory install-detection
@@ -103,21 +110,47 @@ install-detection: network ## Install Falco detection stack
 
 install-alerting: network ## Install Falcosidekick alerting stack
 	@echo "$(CYAN)🔔 Installing Alerting Stack...$(RESET)"
-	@cd alerting && $(DOCKER_COMPOSE) up -d
-	@echo "$(GREEN)✓ Alerting stack installed$(RESET)"
+	@# Load .env and determine logs backend (default: loki)
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	LOGS_ENDPOINT=$${LOGS_ENDPOINT:-loki}; \
+	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] || [ "$$LOGS_ENDPOINT" = "victoriametrics" ] || [ "$$LOGS_ENDPOINT" = "victoria" ]; then \
+		LOGS_HOSTPORT="http://sib-victorialogs:9428/insert"; \
+	else \
+		LOGS_HOSTPORT="http://sib-loki:3100"; \
+	fi; \
+	# Generate alerting config from template
+	if [ -f alerting/config/config.yaml.template ]; then \
+		sed "s|__LOGS_HOSTPORT__|$$LOGS_HOSTPORT|g" alerting/config/config.yaml.template > alerting/config/config.yaml; \
+	fi; \
+	cd alerting && $(DOCKER_COMPOSE) up -d; \
+	echo "$(GREEN)✓ Alerting stack installed$(RESET)"
 
 install-storage: network ## Install Loki + Prometheus storage stack
 	@echo "$(CYAN)💾 Installing Storage Stack...$(RESET)"
 	@cd storage && $(DOCKER_COMPOSE) up -d
 	@echo "$(GREEN)✓ Storage stack installed$(RESET)"
 
+install-storage-victorialogs: network ## Install VictoriaLogs + Prometheus storage stack
+	@echo "$(CYAN)💾 Installing VictoriaLogs Storage Stack...$(RESET)"
+	@cd storage && $(DOCKER_COMPOSE) -f compose-victorialogs.yaml up -d
+	@echo "$(GREEN)✓ VictoriaLogs storage stack installed$(RESET)"
+
 install-grafana: network ## Install Grafana dashboard
 	@echo "$(CYAN)📊 Installing Grafana...$(RESET)"
 	@cd grafana && $(DOCKER_COMPOSE) up -d
 	@echo "$(GREEN)✓ Grafana installed$(RESET)"
+	@# If LOGS_ENDPOINT is set to victorialogs, switch Grafana datasource accordingly
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	LOGS_ENDPOINT=$${LOGS_ENDPOINT:-loki}; \
+	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] || [ "$$LOGS_ENDPOINT" = "victoriametrics" ] || [ "$$LOGS_ENDPOINT" = "victoria" ]; then \
+		$(MAKE) --no-print-directory use-victorialogs-datasource; \
+	else \
+		$(MAKE) --no-print-directory use-loki-datasource; \
+	fi
 
 install-analysis: network ## Install AI Analysis API service
 	@echo "$(CYAN)🤖 Installing AI Analysis API...$(RESET)"
+	@# Prompt for analysis API hostname
 	@if [ -z "$(ANALYSIS_HOST)" ]; then \
 		echo "$(YELLOW)Enter the hostname/IP where the analysis API will be accessed from browsers$(RESET)"; \
 		echo "$(YELLOW)(e.g., your server's IP address or hostname):$(RESET)"; \
@@ -125,7 +158,15 @@ install-analysis: network ## Install AI Analysis API service
 	else \
 		host="$(ANALYSIS_HOST)"; \
 	fi; \
-	sed "s|ANALYSIS_HOST|$$host|g" analysis/events-explorer-ai.json > grafana/provisioning/dashboards/json/events-explorer.json; \
+	set -a; . ./.env 2>/dev/null || true; set +a; \
+	LOGS_ENDPOINT=$${LOGS_ENDPOINT:-loki}; \
+	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] || [ "$$LOGS_ENDPOINT" = "victoriametrics" ] || [ "$$LOGS_ENDPOINT" = "victoria" ]; then \
+		echo "$(CYAN)Using VictoriaLogs Events Explorer dashboard...$(RESET)"; \
+		sed "s|ANALYSIS_HOST|$$host|g" analysis/events-explorer-ai-victorialogs.json > grafana/provisioning/dashboards/victorialogs/events-explorer-victorialogs.json; \
+	else \
+		echo "$(CYAN)Using Loki Events Explorer dashboard...$(RESET)"; \
+		sed "s|ANALYSIS_HOST|$$host|g" analysis/events-explorer-ai.json > grafana/provisioning/dashboards/loki/events-explorer.json; \
+	fi; \
 	cd analysis && $(DOCKER_COMPOSE) up -d --build
 	@echo "$(GREEN)✓ AI Analysis API installed$(RESET)"
 	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-grafana; then \
@@ -152,6 +193,9 @@ start-alerting: ## Start alerting stack
 start-storage: ## Start storage stack
 	@cd storage && $(DOCKER_COMPOSE) start
 
+start-storage-victorialogs: ## Start VictoriaLogs storage stack
+	@cd storage && $(DOCKER_COMPOSE) -f compose-victorialogs.yaml start
+
 start-grafana: ## Start Grafana
 	@cd grafana && $(DOCKER_COMPOSE) start
 
@@ -171,6 +215,9 @@ stop-alerting: ## Stop alerting stack
 
 stop-storage: ## Stop storage stack
 	@cd storage && $(DOCKER_COMPOSE) stop
+
+stop-storage-victorialogs: ## Stop VictoriaLogs storage stack
+	@cd storage && $(DOCKER_COMPOSE) -f compose-victorialogs.yaml stop
 
 stop-grafana: ## Stop Grafana
 	@cd grafana && $(DOCKER_COMPOSE) stop
@@ -225,7 +272,15 @@ uninstall-alerting: ## Remove alerting stack and volumes
 
 uninstall-storage: ## Remove storage stack and volumes
 	@echo "$(YELLOW)Removing storage stack...$(RESET)"
-	@cd storage && $(DOCKER_COMPOSE) down -v
+	@# Read LOGS_ENDPOINT from .env to decide which compose file to remove
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	LOGS_ENDPOINT=$${LOGS_ENDPOINT:-loki}; \
+	cd storage; \
+	if [ "$$LOGS_ENDPOINT" = "victorialogs" ] || [ "$$LOGS_ENDPOINT" = "victoriametrics" ] || [ "$$LOGS_ENDPOINT" = "victoria" ]; then \
+		$(DOCKER_COMPOSE) -f compose-victorialogs.yaml down -v; \
+	else \
+		$(DOCKER_COMPOSE) down -v; \
+	fi; 
 	@echo "$(GREEN)✓ Storage stack removed$(RESET)"
 
 uninstall-grafana: ## Remove Grafana and volumes
@@ -273,6 +328,11 @@ status: ## Show status of all stacks with health indicators
 	else \
 		printf "  %-22s $(RED)%-12s$(RESET)\n" "Loki" "stopped"; \
 	fi
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-victorialogs; then \
+		printf "  %-22s $(GREEN)%-12s$(RESET) %s\n" "VictoriaLogs" "running" "(optional)"; \
+	else \
+		printf "  %-22s $(CYAN)%-12s$(RESET) %s\n" "VictoriaLogs" "not installed" "(optional)"; \
+	fi
 	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-prometheus; then \
 		health=$$(curl -sf http://localhost:9090/-/ready 2>/dev/null && echo "$(GREEN)✓ healthy$(RESET)" || echo "$(YELLOW)? starting$(RESET)"); \
 		printf "  %-22s $(GREEN)%-12s$(RESET) %b\n" "Prometheus" "running" "$$health"; \
@@ -308,6 +368,11 @@ health: ## Quick health check of all services
 	@echo "$(CYAN)Storage:$(RESET)"
 	@curl -sf http://localhost:3100/ready >/dev/null 2>&1 && echo "  $(GREEN)✓$(RESET) Loki is healthy" || echo "  $(RED)✗$(RESET) Loki is not responding"
 	@curl -sf http://localhost:9090/-/ready >/dev/null 2>&1 && echo "  $(GREEN)✓$(RESET) Prometheus is healthy" || echo "  $(RED)✗$(RESET) Prometheus is not responding"
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-victorialogs; then \
+		curl -sf http://localhost:9428/health >/dev/null 2>&1 && echo "  $(GREEN)✓$(RESET) VictoriaLogs is healthy" || echo "  $(RED)✗$(RESET) VictoriaLogs is not responding"; \
+	else \
+		echo "  $(CYAN)-$(RESET) Not installed (run 'make install-storage-victorialogs')"; \
+	fi
 	@echo ""
 	@echo "$(CYAN)Visualization:$(RESET)"
 	@curl -sf http://localhost:3000/api/health >/dev/null 2>&1 && echo "  $(GREEN)✓$(RESET) Grafana is healthy" || echo "  $(RED)✗$(RESET) Grafana is not responding"
@@ -364,6 +429,9 @@ logs-sidekick: ## Tail Falcosidekick logs
 
 logs-storage: ## Tail storage stack logs (Loki + Prometheus)
 	@cd storage && $(DOCKER_COMPOSE) logs -f
+
+logs-storage-victorialogs: ## Tail storage stack logs (VictoriaLogs + Prometheus)
+	@cd storage && $(DOCKER_COMPOSE) -f compose-victorialogs.yaml logs -f
 
 logs-grafana: ## Tail Grafana logs
 	@cd grafana && $(DOCKER_COMPOSE) logs -f
@@ -502,6 +570,26 @@ clean: ## Remove unused Docker resources
 	@docker system prune -f
 	@echo "$(GREEN)✓ Cleanup complete$(RESET)"
 
+use-loki-datasource: ## Switch Grafana datasource back to Loki
+	@cp grafana/provisioning/datasources/templates/datasources-loki.yml grafana/provisioning/datasources/datasources.yml
+	@docker restart sib-grafana >/dev/null 2>&1 || true
+	@echo "$(GREEN)✓ Grafana datasource set to Loki$(RESET)"
+
+use-victorialogs-datasource: ## Switch Grafana datasource to VictoriaLogs
+	@cp grafana/provisioning/datasources/templates/datasources-victorialogs.yml grafana/provisioning/datasources/datasources.yml
+	@docker restart sib-grafana >/dev/null 2>&1 || true
+	@echo "$(GREEN)✓ Grafana datasource set to VictoriaLogs$(RESET)"
+
+use-loki-output: ## Point Falcosidekick output to Loki
+	@sed -i.bak 's|^  hostport:.*|  hostport: "http://sib-loki:3100"|' alerting/config/config.yaml && rm -f alerting/config/config.yaml.bak
+	@docker restart sib-sidekick >/dev/null 2>&1 || true
+	@echo "$(GREEN)✓ Falcosidekick output set to Loki$(RESET)"
+
+use-victorialogs-output: ## Point Falcosidekick output to VictoriaLogs
+	@sed -i.bak 's|^  hostport:.*|  hostport: "http://sib-victorialogs:9428/insert"|' alerting/config/config.yaml && rm -f alerting/config/config.yaml.bak
+	@docker restart sib-sidekick >/dev/null 2>&1 || true
+	@echo "$(GREEN)✓ Falcosidekick output set to VictoriaLogs$(RESET)"
+
 # ==================== Update ====================
 
 update: ## Pull latest images and restart all stacks
@@ -517,14 +605,16 @@ update: ## Pull latest images and restart all stacks
 	@echo "$(GREEN)✓ All stacks updated$(RESET)"
 
 .PHONY: help network install install-detection install-alerting install-storage install-grafana install-analysis \
-        start start-detection start-alerting start-storage start-grafana start-analysis \
-        stop stop-detection stop-alerting stop-storage stop-grafana stop-analysis \
+	install-storage-victorialogs \
+	start start-detection start-alerting start-storage start-storage-victorialogs start-grafana start-analysis \
+	stop stop-detection stop-alerting stop-storage stop-storage-victorialogs stop-grafana stop-analysis \
         restart restart-detection restart-alerting restart-storage restart-grafana restart-analysis \
         uninstall uninstall-detection uninstall-alerting uninstall-storage uninstall-grafana uninstall-analysis uninstall-collectors \
-        status health doctor logs logs-falco logs-sidekick logs-storage logs-grafana logs-analysis \
+	status health doctor logs logs-falco logs-sidekick logs-storage logs-storage-victorialogs logs-grafana logs-analysis \
         shell-falco shell-grafana shell-loki shell-analysis \
         test-alert demo demo-quick test-rules open info ps check-ports validate clean update \
-        enable-remote deploy-collector
+	use-loki-datasource use-victorialogs-datasource use-loki-output use-victorialogs-output \
+	enable-remote enable-remote-victorialogs deploy-collector
 
 # ==================== Remote Collectors ====================
 
@@ -547,6 +637,30 @@ enable-remote: ## Enable remote connections from Alloy collectors
 	@echo "$(CYAN)Collectors can now send data to:$(RESET)"
 	@echo "  Loki:       http://$$(hostname -I 2>/dev/null | awk '{print $$1}' || echo 'YOUR_IP'):3100"
 	@echo "  Prometheus: http://$$(hostname -I 2>/dev/null | awk '{print $$1}' || echo 'YOUR_IP'):9090"
+	@echo ""
+	@echo "$(CYAN)Deploy a collector with:$(RESET)"
+	@echo "  make deploy-collector HOST=user@remote-host"
+	@echo ""
+
+enable-remote-victorialogs: ## Enable remote connections for VictoriaLogs collectors
+	@echo "$(CYAN)🌐 Enabling remote connections for collectors (VictoriaLogs)...$(RESET)"
+	@echo ""
+	@echo "$(YELLOW)This will expose VictoriaLogs (9428) and Prometheus (9090) externally.$(RESET)"
+	@echo "$(YELLOW)Make sure your firewall is configured appropriately.$(RESET)"
+	@echo ""
+	@read -p "Continue? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	@if grep -q "^STORAGE_BIND=" .env 2>/dev/null; then \
+		sed -i.bak 's/^STORAGE_BIND=.*/STORAGE_BIND=0.0.0.0/' .env && rm -f .env.bak; \
+	else \
+		echo "STORAGE_BIND=0.0.0.0" >> .env; \
+	fi
+	@cd storage && $(DOCKER_COMPOSE) -f compose-victorialogs.yaml up -d
+	@echo ""
+	@echo "$(GREEN)✓ Remote connections enabled$(RESET)"
+	@echo ""
+	@echo "$(CYAN)Collectors can now send data to:$(RESET)"
+	@echo "  VictoriaLogs: http://$$(hostname -I 2>/dev/null | awk '{print $$1}' || echo 'YOUR_IP'):9428"
+	@echo "  Prometheus:   http://$$(hostname -I 2>/dev/null | awk '{print $$1}' || echo 'YOUR_IP'):9090"
 	@echo ""
 	@echo "$(CYAN)Deploy a collector with:$(RESET)"
 	@echo "  make deploy-collector HOST=user@remote-host"

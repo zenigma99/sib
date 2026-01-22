@@ -1,12 +1,13 @@
 # Storage Stack
 
-This directory contains Loki and Prometheus for storing security data.
+This directory contains Loki and Prometheus for storing security data. An optional VictoriaLogs backend is also available.
 
 ## Components
 
 | Service | Port | Description |
 |---------|------|-------------|
 | **Loki** | 3100 | Log aggregation for security events |
+| **VictoriaLogs** | 9428 | Optional log storage backend (full‑text search) |
 | **Prometheus** | 9090 | Metrics storage |
 
 ## Loki
@@ -65,7 +66,24 @@ sum(rate(falcosidekick_outputs_ok[5m])) / sum(rate(falcosidekick_outputs_total[5
 | Component | Default | Config Location |
 |-----------|---------|-----------------|
 | Loki | 7 days | `config/loki-config.yml` |
+| VictoriaLogs | 7 days | `compose-victorialogs.yaml` (retentionPeriod) |
 | Prometheus | 15 days | `compose.yaml` |
+
+## VictoriaLogs (Optional)
+
+To run VictoriaLogs instead of Loki:
+
+```bash
+make install-storage-victorialogs
+make use-victorialogs-datasource
+```
+
+Then update Falcosidekick to point at VictoriaLogs:
+
+```yaml
+loki:
+	hostport: "http://sib-victorialogs:9428"
+```
 
 ## Troubleshooting
 

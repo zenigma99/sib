@@ -213,7 +213,7 @@
         "y": 31
       },
       "id": 4,
-      "title": "\ud83e\udd16 Select Event to Analyze",
+      "title": "🤖 Select Event to Analyze",
       "type": "table",
       "fieldConfig": {
         "defaults": {

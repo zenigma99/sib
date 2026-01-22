@@ -27,7 +27,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "# \ud83c\udfaf MITRE ATT&CK Detection Coverage\n\nThis dashboard maps detected security events to the **MITRE ATT&CK framework**. Each tactic shows the number of events detected in the selected time range.\n\n**Green** = Events detected | **Red** = No events (potential gap)\n\n[MITRE ATT&CK Reference](https://attack.mitre.org/)",
+        "content": "# 🎯 MITRE ATT&CK Detection Coverage\n\nThis dashboard maps detected security events to the **MITRE ATT&CK framework**. Each tactic shows the number of events detected in the selected time range.\n\n**Green** = Events detected | **Red** = No events (potential gap)\n\n[MITRE ATT&CK Reference](https://attack.mitre.org/)",
         "mode": "markdown"
       },
       "pluginVersion": "11.4.0",
@@ -95,7 +95,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udfe2 Last Event",
+      "title": "🟢 Last Event",
       "type": "stat"
     },
     {
@@ -165,7 +165,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udea8 Critical",
+      "title": "🚨 Critical",
       "type": "stat"
     },
     {
@@ -235,7 +235,7 @@
           "refId": "A"
         }
       ],
-      "title": "\u26a0\ufe0f Error",
+      "title": "⚠️ Error",
       "type": "stat"
     },
     {
@@ -301,7 +301,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udeaa Initial Access",
+      "title": "🚪 Initial Access",
       "description": "TA0001 - Adversaries trying to get into your network",
       "type": "stat"
     },
@@ -368,7 +368,7 @@
           "refId": "A"
         }
       ],
-      "title": "\u26a1 Execution",
+      "title": "⚡ Execution",
       "description": "TA0002 - Adversaries trying to run malicious code",
       "type": "stat"
     },
@@ -435,7 +435,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd04 Persistence",
+      "title": "🔄 Persistence",
       "description": "TA0003 - Adversaries trying to maintain their foothold",
       "type": "stat"
     },
@@ -502,7 +502,7 @@
           "refId": "A"
         }
       ],
-      "title": "\u2b06\ufe0f Privilege Escalation",
+      "title": "⬆️ Privilege Escalation",
       "description": "TA0004 - Adversaries trying to gain higher-level permissions",
       "type": "stat"
     },
@@ -569,7 +569,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83e\udd77 Defense Evasion",
+      "title": "🥷 Defense Evasion",
       "description": "TA0005 - Adversaries trying to avoid being detected",
       "type": "stat"
     },
@@ -636,7 +636,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd11 Credential Access",
+      "title": "🔑 Credential Access",
       "description": "TA0006 - Adversaries trying to steal account names and passwords",
       "type": "stat"
     },
@@ -703,7 +703,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd0d Discovery",
+      "title": "🔍 Discovery",
       "description": "TA0007 - Adversaries trying to figure out your environment",
       "type": "stat"
     },
@@ -770,7 +770,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd00 Lateral Movement",
+      "title": "🔀 Lateral Movement",
       "description": "TA0008 - Adversaries trying to move through your environment",
       "type": "stat"
     },
@@ -837,7 +837,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udce6 Collection",
+      "title": "📦 Collection",
       "description": "TA0009 - Adversaries trying to gather data of interest",
       "type": "stat"
     },
@@ -904,7 +904,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udce1 Command & Control",
+      "title": "📡 Command & Control",
       "description": "TA0011 - Adversaries trying to communicate with compromised systems",
       "type": "stat"
     },
@@ -971,7 +971,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udce4 Exfiltration",
+      "title": "📤 Exfiltration",
       "description": "TA0010 - Adversaries trying to steal data",
       "type": "stat"
     },
@@ -1038,7 +1038,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udca5 Impact",
+      "title": "💥 Impact",
       "description": "TA0012 - Adversaries trying to manipulate, interrupt, or destroy systems and data",
       "type": "stat"
     },
@@ -1212,7 +1212,7 @@
           "refId": "E"
         }
       ],
-      "title": "\ud83d\udcca Events by MITRE Tactic Over Time",
+      "title": "📊 Events by MITRE Tactic Over Time",
       "type": "timeseries"
     },
     {
@@ -1329,7 +1329,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83c\udfaf Top Detected Techniques",
+      "title": "🎯 Top Detected Techniques",
       "transformations": [
         {
           "id": "labelsToFields",
@@ -1436,7 +1436,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udcc8 Events by Priority",
+      "title": "📈 Events by Priority",
       "transformations": [],
       "type": "piechart"
     },
@@ -1475,7 +1475,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udea8 Critical & Error Events",
+      "title": "🚨 Critical & Error Events",
       "type": "logs"
     },
     {
@@ -1513,7 +1513,7 @@
           "refId": "A"
         }
       ],
-      "title": "\ud83d\udd0d MITRE-Tagged Events (Raw Logs)",
+      "title": "🔍 MITRE-Tagged Events (Raw Logs)",
       "type": "logs"
     }
   ],

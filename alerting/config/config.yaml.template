@@ -1,0 +1,7 @@
+# Falcosidekick Configuration
+debug: false
+
+# The logs backend host/port used by Falcosidekick. This value is substituted from .env via the Makefile.
+# Use __LOGS_HOSTPORT__ placeholder which Makefile replaces when generating config.yaml
+loki:
+  hostport: "__LOGS_HOSTPORT__"

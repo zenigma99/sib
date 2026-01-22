@@ -28,6 +28,7 @@ title: SIEM in a Box
 | [Troubleshooting](troubleshooting.md) | Common issues and solutions |
 | [FAQ](faq.md) | Common questions and answers |
 | [Kubernetes Deployment](https://github.com/matijazezelj/sib-k8s) | Run SIB on Kubernetes |
+| [VictoriaLogs Backend](victorialogs.md) | Use VictoriaLogs instead of Loki |
 
 ---
 

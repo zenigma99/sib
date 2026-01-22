@@ -276,22 +276,10 @@
               ]}
             ]
           },
-          {
-            "matcher": {"id": "byName", "options": "Critical"},
-            "properties": [{"id": "custom.width", "value": 70}]
-          },
-          {
-            "matcher": {"id": "byName", "options": "Error"},
-            "properties": [{"id": "custom.width", "value": 60}]
-          },
-          {
-            "matcher": {"id": "byName", "options": "Warning"},
-            "properties": [{"id": "custom.width", "value": 70}]
-          },
-          {
-            "matcher": {"id": "byName", "options": "Notice"},
-            "properties": [{"id": "custom.width", "value": 60}]
-          }
+          {"matcher": {"id": "byName", "options": "Critical"}, "properties": [{"id": "custom.width", "value": 70}]},
+          {"matcher": {"id": "byName", "options": "Error"}, "properties": [{"id": "custom.width", "value": 60}]},
+          {"matcher": {"id": "byName", "options": "Warning"}, "properties": [{"id": "custom.width", "value": 70}]},
+          {"matcher": {"id": "byName", "options": "Notice"}, "properties": [{"id": "custom.width", "value": 60}]}
         ]
       },
       "targets": [

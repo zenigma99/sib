@@ -7,7 +7,7 @@
   "links": [],
   "panels": [
     {
-      "datasource": {"type": "loki", "uid": "loki"},
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
       "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
       "id": 1,
       "options": {
@@ -15,7 +15,7 @@
         "graphMode": "area",
         "justifyMode": "center",
         "orientation": "auto",
-        "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false},
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
         "textMode": "value_and_name"
       },
       "fieldConfig": {
@@ -37,17 +37,47 @@
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "(sum(count_over_time({source=\"syscall\", priority=\"Critical\"} [$__range])) * 25 or vector(0))\n+ (sum(count_over_time({source=\"syscall\", priority=\"Error\"} [$__range])) * 10 or vector(0))\n+ (sum(count_over_time({source=\"syscall\", priority=\"Warning\"} [$__range])) * 3 or vector(0))\n+ (sum(count_over_time({source=\"syscall\", priority=\"Notice\"} [$__range])) * 1 or vector(0))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Critical | stats count() as Critical",
+          "queryType": "stats",
           "refId": "A"
+        },
+        {
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Error | stats count() as Error",
+          "queryType": "stats",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Warning | stats count() as Warning",
+          "queryType": "stats",
+          "refId": "C"
+        },
+        {
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Notice | stats count() as Notice",
+          "queryType": "stats",
+          "refId": "D"
         }
+      ],
+      "transformations": [
+        {"id": "merge", "options": {}},
+        {"id": "calculateField", "options": {"alias": "CritW", "mode": "binary", "binary": {"left": "Critical", "operator": "*", "right": "25"}}},
+        {"id": "calculateField", "options": {"alias": "ErrW", "mode": "binary", "binary": {"left": "Error", "operator": "*", "right": "10"}}},
+        {"id": "calculateField", "options": {"alias": "WarnW", "mode": "binary", "binary": {"left": "Warning", "operator": "*", "right": "3"}}},
+        {"id": "calculateField", "options": {"alias": "NotW", "mode": "binary", "binary": {"left": "Notice", "operator": "*", "right": "1"}}},
+        {"id": "calculateField", "options": {"alias": "Sum1", "mode": "binary", "binary": {"left": "CritW", "operator": "+", "right": "ErrW"}}},
+        {"id": "calculateField", "options": {"alias": "Sum2", "mode": "binary", "binary": {"left": "WarnW", "operator": "+", "right": "NotW"}}},
+        {"id": "calculateField", "options": {"alias": "Risk Score", "mode": "binary", "binary": {"left": "Sum1", "operator": "+", "right": "Sum2"}}},
+        {"id": "organize", "options": {"excludeByName": {"Critical": true, "Error": true, "Warning": true, "Notice": true, "CritW": true, "ErrW": true, "WarnW": true, "NotW": true, "Sum1": true, "Sum2": true}, "indexByName": {"Risk Score": 0}}}
       ],
       "title": "Security Posture",
       "description": "Total weighted risk score. Green = Healthy, Yellow = Elevated, Orange = High, Red = Critical",
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
       "gridPos": {"h": 4, "w": 3, "x": 6, "y": 0},
       "id": 2,
       "options": {
@@ -69,8 +99,9 @@
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({source=\"syscall\", priority=\"Critical\"} [$__range]))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Critical | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
@@ -78,7 +109,7 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
       "gridPos": {"h": 4, "w": 3, "x": 9, "y": 0},
       "id": 3,
       "options": {
@@ -100,8 +131,9 @@
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({source=\"syscall\", priority=\"Error\"} [$__range]))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Error | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
@@ -109,7 +141,7 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
       "gridPos": {"h": 4, "w": 3, "x": 6, "y": 4},
       "id": 4,
       "options": {
@@ -131,8 +163,9 @@
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({source=\"syscall\", priority=\"Warning\"} [$__range]))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Warning | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
@@ -140,7 +173,7 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
       "gridPos": {"h": 4, "w": 3, "x": 9, "y": 4},
       "id": 5,
       "options": {
@@ -162,8 +195,9 @@
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({source=\"syscall\", priority=\"Notice\"} [$__range]))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Notice | stats count()",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
@@ -171,7 +205,7 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "id": 10,
       "options": {
@@ -204,27 +238,31 @@
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({source=\"syscall\", priority=\"Critical\"} [$__interval]))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Critical | stats count()",
           "legendFormat": "Critical",
+          "queryType": "statsRange",
           "refId": "A"
         },
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({source=\"syscall\", priority=\"Error\"} [$__interval]))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Error | stats count()",
           "legendFormat": "Error",
+          "queryType": "statsRange",
           "refId": "B"
         },
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({source=\"syscall\", priority=\"Warning\"} [$__interval]))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Warning | stats count()",
           "legendFormat": "Warning",
+          "queryType": "statsRange",
           "refId": "C"
         },
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({source=\"syscall\", priority=\"Notice\"} [$__interval]))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Notice | stats count()",
           "legendFormat": "Notice",
+          "queryType": "statsRange",
           "refId": "D"
         }
       ],
@@ -232,7 +270,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
       "gridPos": {"h": 10, "w": 14, "x": 0, "y": 8},
       "id": 20,
       "options": {
@@ -250,7 +288,7 @@
             "matcher": {"id": "byName", "options": "Host"},
             "properties": [
               {"id": "custom.width", "value": 160},
-              {"id": "links", "value": [{"title": "View in Events Explorer", "url": "/d/sib-events-explorer?var-hostname=${__value.text}"}]}
+              {"id": "links", "value": [{"title": "View in Events Explorer", "url": "/d/events-explorer-victorialogs?var-hostname=${__value.text}"}]}
             ]
           },
           {
@@ -276,50 +314,38 @@
               ]}
             ]
           },
-          {
-            "matcher": {"id": "byName", "options": "Critical"},
-            "properties": [{"id": "custom.width", "value": 70}]
-          },
-          {
-            "matcher": {"id": "byName", "options": "Error"},
-            "properties": [{"id": "custom.width", "value": 60}]
-          },
-          {
-            "matcher": {"id": "byName", "options": "Warning"},
-            "properties": [{"id": "custom.width", "value": 70}]
-          },
-          {
-            "matcher": {"id": "byName", "options": "Notice"},
-            "properties": [{"id": "custom.width", "value": 60}]
-          }
+          {"matcher": {"id": "byName", "options": "Critical"}, "properties": [{"id": "custom.width", "value": 70}]},
+          {"matcher": {"id": "byName", "options": "Error"}, "properties": [{"id": "custom.width", "value": 60}]},
+          {"matcher": {"id": "byName", "options": "Warning"}, "properties": [{"id": "custom.width", "value": 70}]},
+          {"matcher": {"id": "byName", "options": "Notice"}, "properties": [{"id": "custom.width", "value": 60}]}
         ]
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (hostname) (count_over_time({source=\"syscall\", priority=\"Critical\"} [$__range]))",
-          "legendFormat": "Critical",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Critical | stats by (hostname) count() as Critical",
+          "queryType": "stats",
           "refId": "Critical",
           "instant": true
         },
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (hostname) (count_over_time({source=\"syscall\", priority=\"Error\"} [$__range]))",
-          "legendFormat": "Error",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Error | stats by (hostname) count() as Error",
+          "queryType": "stats",
           "refId": "Error",
           "instant": true
         },
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (hostname) (count_over_time({source=\"syscall\", priority=\"Warning\"} [$__range]))",
-          "legendFormat": "Warning",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Warning | stats by (hostname) count() as Warning",
+          "queryType": "stats",
           "refId": "Warning",
           "instant": true
         },
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (hostname) (count_over_time({source=\"syscall\", priority=\"Notice\"} [$__range]))",
-          "legendFormat": "Notice",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall priority:Notice | stats by (hostname) count() as Notice",
+          "queryType": "stats",
           "refId": "Notice",
           "instant": true
         }
@@ -330,7 +356,7 @@
         {"id": "merge", "options": {}},
         {"id": "organize", "options": {
           "excludeByName": {"Time": true},
-          "renameByName": {"hostname": "Host", "Value #Critical": "Critical", "Value #Error": "Error", "Value #Warning": "Warning", "Value #Notice": "Notice"}
+          "renameByName": {"hostname": "Host"}
         }},
         {"id": "calculateField", "options": {"alias": "CritW", "mode": "binary", "binary": {"left": "Critical", "operator": "*", "right": "25"}}},
         {"id": "calculateField", "options": {"alias": "ErrW", "mode": "binary", "binary": {"left": "Error", "operator": "*", "right": "10"}}},
@@ -348,7 +374,7 @@
       "type": "table"
     },
     {
-      "datasource": {"type": "loki", "uid": "loki"},
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
       "gridPos": {"h": 10, "w": 10, "x": 14, "y": 8},
       "id": 21,
       "options": {
@@ -362,9 +388,10 @@
       },
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "topk(8, sum by (rule) (count_over_time({source=\"syscall\"} [$__range])))",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "source:syscall | stats by (rule) count()",
           "legendFormat": "{{rule}}",
+          "queryType": "stats",
           "refId": "A"
         }
       ],
@@ -384,12 +411,12 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["security", "falco", "sib", "risk", "executive"],
+  "tags": ["security", "falco", "sib", "risk", "executive", "victorialogs"],
   "templating": {"list": []},
   "time": {"from": "now-24h", "to": "now"},
   "timepicker": {},
   "timezone": "browser",
-  "title": "Host Risk Scores (Loki)",
-  "uid": "sib-risk-scores",
+  "title": "Host Risk Scores (VictoriaLogs)",
+  "uid": "sib-risk-scores-victorialogs",
   "version": 1
 }

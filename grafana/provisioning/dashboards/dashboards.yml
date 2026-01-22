@@ -5,13 +5,24 @@
 apiVersion: 1
 
 providers:
-  - name: 'SIB Dashboards'
+  - name: 'SIB Dashboards (Loki)'
     orgId: 1
-    folder: 'SIEM in a Box'
-    folderUid: 'sib'
+    folder: 'SIEM in a Box / Loki'
+    folderUid: 'sib-loki'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30
     allowUiUpdates: true
     options:
-      path: /etc/grafana/provisioning/dashboards/json
+      path: /etc/grafana/provisioning/dashboards/loki
+
+  - name: 'SIB Dashboards (VictoriaLogs)'
+    orgId: 1
+    folder: 'SIEM in a Box / VictoriaLogs'
+    folderUid: 'sib-victorialogs'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/victorialogs
