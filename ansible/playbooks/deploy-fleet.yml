@@ -5,15 +5,16 @@
 #   ansible-playbook -i inventory/hosts.yml playbooks/deploy-fleet.yml
 #   ansible-playbook -i inventory/hosts.yml playbooks/deploy-fleet.yml --limit webserver
 #   ansible-playbook -i inventory/hosts.yml playbooks/deploy-fleet.yml --tags falco
+#   ansible-playbook -i inventory/hosts.yml playbooks/deploy-fleet.yml -e mtls_enabled=true
 ---
 
 - name: Deploy SIB Fleet Agents
   hosts: fleet
   become: true
-  
+
   vars:
     deployment_timestamp: "{{ ansible_date_time.iso8601 }}"
-  
+
   pre_tasks:
     - name: Display deployment info
       ansible.builtin.debug:
@@ -22,6 +23,7 @@
           SIB Server: {{ sib_server }}
           Falco Version: {{ falco_version }}
           Deployment Strategy: {{ deployment_strategy }}
+          mTLS Enabled: {{ mtls_enabled | default(false) }}
       tags: always
 
     - name: Gather facts
@@ -32,13 +34,35 @@
           - distribution
       tags: always
 
+    - name: Validate mTLS prerequisites
+      when: mtls_enabled | default(false) | bool
+      tags: [always, certs]
+      block:
+        - name: Check if client certificate exists for this host
+          ansible.builtin.stat:
+            path: "{{ playbook_dir }}/../certs/clients/{{ inventory_hostname }}.crt"
+          delegate_to: localhost
+          register: client_cert_check
+
+        - name: Fail if mTLS enabled but certificate missing
+          ansible.builtin.fail:
+            msg: |
+              mTLS is enabled but certificate not found for '{{ inventory_hostname }}'
+              Run: make generate-client-cert HOST={{ inventory_hostname }}
+          when: not client_cert_check.stat.exists
+
   roles:
     - role: common
       tags: [common, setup]
-    
+
+    # Distribute certificates when mTLS is enabled
+    - role: certs
+      tags: [certs, security]
+      when: mtls_enabled | default(false) | bool
+
     - role: falco
       tags: [falco, detection]
-    
+
     - role: alloy
       tags: [alloy, shipping]
 
@@ -69,10 +93,11 @@
       ansible.builtin.debug:
         msg: |
           ✅ Deployment complete for {{ inventory_hostname }}
-          
+
           Falco: {{ falco_status.stdout | default('not running') }}
           Alloy: {{ alloy_status.stdout | default('not running') }}
-          
+          mTLS: {{ 'enabled' if mtls_enabled | default(false) | bool else 'disabled' }}
+
           Logs shipping to: {{ sib_loki_url }}
-          Events shipping to: http://{{ sib_server }}:2801
+          Events shipping to: {{ falco_outputs.http_url }}
       tags: verify

@@ -50,6 +50,9 @@ help: ## Show this help message
 	@echo "$(CYAN)Fleet Management (Ansible):$(RESET)"
 	@grep -E '^(fleet-build|deploy-fleet|update-rules|fleet-health|fleet-docker-check|remove-fleet|fleet-ping|fleet-shell):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
 	@echo ""
+	@echo "$(CYAN)mTLS Certificates:$(RESET)"
+	@grep -E '^(generate-certs|generate-client-cert|generate-fleet-certs|verify-certs|rotate-certs|test-mtls|test-alert-mtls):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@echo ""
 	@echo "$(CYAN)Stack-specific commands:$(RESET)"
 	@echo "  Commands follow the pattern: $(GREEN)<action>-<stack>$(RESET)"
 	@echo "  Example: make install-detection, make stop-alerting, make logs-storage"
@@ -107,24 +110,27 @@ install: network ## Install all security stacks
 
 install-detection: network ## Install Falco detection stack
 	@echo "$(CYAN)🔍 Installing Falco Detection Stack...$(RESET)"
+	@# Generate Falco config from template with mTLS settings
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	if [ "$${MTLS_ENABLED:-false}" = "true" ]; then \
+		echo "$(CYAN)  mTLS enabled - using HTTPS to Falcosidekick$(RESET)"; \
+		MTLS_ENABLED=true ./scripts/generate-falco-config.sh; \
+	else \
+		./scripts/generate-falco-config.sh; \
+	fi
 	@cd detection && $(DOCKER_COMPOSE) up -d
 	@echo "$(GREEN)✓ Detection stack installed$(RESET)"
 
 install-alerting: network ## Install Falcosidekick alerting stack
 	@echo "$(CYAN)🔔 Installing Alerting Stack...$(RESET)"
-	@# Load .env and determine logs backend based on STACK
+	@# Generate Falcosidekick config with mTLS settings if enabled
 	@set -a; . ./.env 2>/dev/null || true; set +a; \
-	STACK=$${STACK:-grafana}; \
-	if [ "$$STACK" = "vm" ]; then \
-		LOKI_HOSTPORT="http://sib-victorialogs:9428/insert"; \
-	else \
-		LOKI_HOSTPORT="http://sib-loki:3100"; \
+	if [ "$${MTLS_ENABLED:-false}" = "true" ]; then \
+		echo "$(CYAN)  mTLS enabled - configuring TLS for Falcosidekick$(RESET)"; \
 	fi; \
-	if [ -f alerting/config/config.yaml.template ]; then \
-		sed "s|__LOKI_HOSTPORT__|$$LOKI_HOSTPORT|g" alerting/config/config.yaml.template > alerting/config/config.yaml; \
-	fi; \
-	cd alerting && $(DOCKER_COMPOSE) up -d; \
-	echo "$(GREEN)✓ Alerting stack installed$(RESET)"
+	STACK=$${STACK:-vm} MTLS_ENABLED=$${MTLS_ENABLED:-false} ./scripts/generate-sidekick-config.sh
+	@cd alerting && $(DOCKER_COMPOSE) up -d
+	@echo "$(GREEN)✓ Alerting stack installed$(RESET)"
 
 install-storage-grafana: network ## Install Loki + Prometheus storage stack (Grafana ecosystem)
 	@echo "$(CYAN)💾 Installing Grafana Storage Stack (Loki + Prometheus)...$(RESET)"
@@ -354,8 +360,13 @@ status: ## Show status of all stacks with health indicators
 	else \
 		printf "  %-22s $(RED)%-12s$(RESET)\n" "Falco" "stopped"; \
 	fi
-	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-sidekick; then \
-		health=$$(curl -sf http://localhost:2801/healthz 2>/dev/null && echo "$(GREEN)✓ healthy$(RESET)" || echo "$(YELLOW)? starting$(RESET)"); \
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	if docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-sidekick; then \
+		if [ "$${MTLS_ENABLED:-false}" = "true" ]; then \
+			health=$$(curl -sf --cacert certs/ca/ca.crt --cert certs/clients/local.crt --key certs/clients/local.key https://localhost:2801/healthz 2>/dev/null && echo "$(GREEN)✓ healthy (mTLS)$(RESET)" || echo "$(YELLOW)? starting$(RESET)"); \
+		else \
+			health=$$(curl -sf http://localhost:2801/healthz 2>/dev/null && echo "$(GREEN)✓ healthy$(RESET)" || echo "$(YELLOW)? starting$(RESET)"); \
+		fi; \
 		printf "  %-22s $(GREEN)%-12s$(RESET) %b\n" "Falcosidekick" "running" "$$health"; \
 	else \
 		printf "  %-22s $(RED)%-12s$(RESET)\n" "Falcosidekick" "stopped"; \
@@ -401,7 +412,14 @@ health: ## Quick health check of all services
 	@docker ps --format '{{.Names}}' 2>/dev/null | grep -q sib-falco && echo "  $(GREEN)✓$(RESET) Falco is running" || echo "  $(RED)✗$(RESET) Falco is not running"
 	@echo ""
 	@echo "$(CYAN)Alerting:$(RESET)"
-	@curl -sf http://localhost:2801/healthz >/dev/null 2>&1 && echo "  $(GREEN)✓$(RESET) Falcosidekick is healthy" || echo "  $(RED)✗$(RESET) Falcosidekick is not responding"
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	if [ "$${MTLS_ENABLED:-false}" = "true" ]; then \
+		curl -sf --cacert certs/ca/ca.crt --cert certs/clients/local.crt --key certs/clients/local.key https://localhost:2801/healthz >/dev/null 2>&1 && \
+			echo "  $(GREEN)✓$(RESET) Falcosidekick is healthy (mTLS)" || echo "  $(RED)✗$(RESET) Falcosidekick is not responding"; \
+	else \
+		curl -sf http://localhost:2801/healthz >/dev/null 2>&1 && \
+			echo "  $(GREEN)✓$(RESET) Falcosidekick is healthy" || echo "  $(RED)✗$(RESET) Falcosidekick is not responding"; \
+	fi
 	@echo ""
 	@echo "$(CYAN)Storage:$(RESET)"
 	@set -a; . ./.env 2>/dev/null || true; set +a; \
@@ -447,7 +465,14 @@ doctor: ## Diagnose common issues
 	@docker run --rm --privileged alpine echo "ok" >/dev/null 2>&1 && echo "  $(GREEN)✓$(RESET) Privileged containers supported" || echo "  $(RED)✗$(RESET) Privileged containers not supported"
 	@echo ""
 	@echo "$(CYAN)Checking ports...$(RESET)"
-	@for port in 2801 3000 3100 9090; do \
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	STACK=$${STACK:-vm}; \
+	if [ "$$STACK" = "vm" ]; then \
+		PORTS="2801 3000 9428 8428"; \
+	else \
+		PORTS="2801 3000 3100 9090"; \
+	fi; \
+	for port in $$PORTS; do \
 		if lsof -Pi :$$port -sTCP:LISTEN -t >/dev/null 2>&1; then \
 			echo "  $(GREEN)✓$(RESET) Port $$port is in use (expected if SIB is running)"; \
 		else \
@@ -510,10 +535,19 @@ test-alert: ## Generate a test security alert
 	@echo "$(BOLD)🧪 Generating Test Alert$(RESET)"
 	@echo ""
 	@echo "$(CYAN)Sending test event to Falcosidekick...$(RESET)"
-	@curl -sf -X POST -H "Content-Type: application/json" -H "Accept: application/json" \
-		http://localhost:2801/test 2>/dev/null && \
-		echo "$(GREEN)✓ Test alert sent successfully!$(RESET)" || \
-		echo "$(RED)✗ Failed to send test alert. Is Falcosidekick running?$(RESET)"
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	if [ "$${MTLS_ENABLED:-false}" = "true" ]; then \
+		curl -sf -X POST -H "Content-Type: application/json" -H "Accept: application/json" \
+			--cacert certs/ca/ca.crt --cert certs/clients/local.crt --key certs/clients/local.key \
+			https://localhost:2801/test 2>/dev/null && \
+			echo "$(GREEN)✓ Test alert sent successfully! (mTLS)$(RESET)" || \
+			echo "$(RED)✗ Failed to send test alert. Is Falcosidekick running?$(RESET)"; \
+	else \
+		curl -sf -X POST -H "Content-Type: application/json" -H "Accept: application/json" \
+			http://localhost:2801/test 2>/dev/null && \
+			echo "$(GREEN)✓ Test alert sent successfully!$(RESET)" || \
+			echo "$(RED)✗ Failed to send test alert. Is Falcosidekick running?$(RESET)"; \
+	fi
 	@echo ""
 	@echo "$(CYAN)Check the alert in:$(RESET)"
 	@echo "  • Grafana: $(YELLOW)http://localhost:3000$(RESET)"
@@ -654,7 +688,9 @@ update: ## Pull latest images and restart all stacks
 	status health doctor logs logs-falco logs-sidekick logs-storage logs-grafana logs-analysis \
         shell-falco shell-grafana shell-loki shell-analysis \
         test-alert demo demo-quick test-rules open info ps check-ports validate clean update \
-	enable-remote deploy-collector
+	enable-remote deploy-collector \
+	generate-certs generate-client-cert generate-fleet-certs verify-certs rotate-certs \
+	test-mtls test-alert-mtls
 
 # ==================== Remote Collectors ====================
 
@@ -712,6 +748,86 @@ deploy-collector: ## Deploy collector to remote host (HOST=user@host)
 	fi; \
 	chmod +x collectors/scripts/deploy.sh && \
 	./collectors/scripts/deploy.sh $(HOST) $$SIB_IP
+
+# ==================== mTLS Certificates ====================
+
+generate-certs: ## Generate CA, server, and local client certificates for mTLS
+	@echo "$(CYAN)🔐 Generating mTLS certificates...$(RESET)"
+	@./scripts/generate-certs.sh all
+	@echo ""
+	@echo "$(GREEN)✓ Certificates generated in certs/$(RESET)"
+
+generate-client-cert: ## Generate client certificate for a host (HOST=hostname)
+	@if [ -z "$(HOST)" ]; then \
+		echo "$(RED)✗ Please specify HOST=hostname$(RESET)"; \
+		echo "  Example: make generate-client-cert HOST=fleet-host-1"; \
+		exit 1; \
+	fi
+	@./scripts/generate-client-cert.sh $(HOST)
+
+generate-fleet-certs: ## Generate client certificates for all hosts in Ansible inventory
+	@echo "$(CYAN)🔐 Generating certificates for all fleet hosts...$(RESET)"
+	@./scripts/generate-fleet-certs.sh
+	@echo ""
+	@echo "$(GREEN)✓ Fleet certificates generated$(RESET)"
+
+verify-certs: ## Verify all mTLS certificates
+	@echo "$(CYAN)🔍 Verifying certificates...$(RESET)"
+	@./scripts/generate-certs.sh verify
+
+rotate-certs: ## Regenerate all certificates (CA + server + clients)
+	@echo "$(YELLOW)⚠️  This will regenerate ALL certificates!$(RESET)"
+	@echo "$(YELLOW)   All fleet agents will need to be redeployed.$(RESET)"
+	@read -p "Continue? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	@./scripts/generate-certs.sh ca
+	@./scripts/generate-certs.sh server
+	@./scripts/generate-fleet-certs.sh --force
+	@echo ""
+	@echo "$(GREEN)✓ All certificates regenerated$(RESET)"
+	@echo "$(CYAN)Next steps:$(RESET)"
+	@echo "  1. Restart alerting: make restart-alerting"
+	@echo "  2. Restart detection: make restart-detection"
+	@echo "  3. Redeploy fleet: make deploy-fleet"
+
+test-mtls: ## Test mTLS connection to Falcosidekick
+	@echo "$(CYAN)🔐 Testing mTLS connection...$(RESET)"
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	if [ "$${MTLS_ENABLED:-false}" != "true" ]; then \
+		echo "$(YELLOW)! mTLS is not enabled (MTLS_ENABLED=false)$(RESET)"; \
+		echo "$(YELLOW)  Testing HTTP connection instead...$(RESET)"; \
+		curl -sf http://localhost:2801/healthz >/dev/null && \
+			echo "$(GREEN)✓ Falcosidekick HTTP endpoint is healthy$(RESET)" || \
+			echo "$(RED)✗ Falcosidekick is not responding$(RESET)"; \
+	else \
+		if [ ! -f certs/ca/ca.crt ] || [ ! -f certs/clients/local.crt ]; then \
+			echo "$(RED)✗ Certificates not found. Run 'make generate-certs' first.$(RESET)"; \
+			exit 1; \
+		fi; \
+		echo "Testing HTTPS with client certificate..."; \
+		curl -sf --cacert certs/ca/ca.crt \
+			--cert certs/clients/local.crt \
+			--key certs/clients/local.key \
+			https://localhost:2801/healthz >/dev/null && \
+			echo "$(GREEN)✓ mTLS connection successful!$(RESET)" || \
+			echo "$(RED)✗ mTLS connection failed$(RESET)"; \
+	fi
+
+test-alert-mtls: ## Send test alert via mTLS
+	@echo "$(CYAN)🧪 Sending test alert via mTLS...$(RESET)"
+	@set -a; . ./.env 2>/dev/null || true; set +a; \
+	if [ "$${MTLS_ENABLED:-false}" != "true" ]; then \
+		echo "$(YELLOW)! mTLS not enabled, using HTTP$(RESET)"; \
+		curl -sf -X POST http://localhost:2801/test && \
+			echo "$(GREEN)✓ Test alert sent$(RESET)" || \
+			echo "$(RED)✗ Failed to send test alert$(RESET)"; \
+	else \
+		curl -sf -X POST --cacert certs/ca/ca.crt \
+			--cert certs/clients/local.crt \
+			--key certs/clients/local.key \
+			https://localhost:2801/test && \
+			echo "$(GREEN)✓ Test alert sent via mTLS$(RESET)" || \
+			echo "$(RED)✗ Failed to send test alert$(RESET)"; \
+	fi
 
 # ==================== Fleet Management (Ansible) ====================
 

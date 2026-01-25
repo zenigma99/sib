@@ -56,9 +56,63 @@ elasticsearch:
 | `/test` | Generate test event |
 | `/metrics` | Prometheus metrics |
 
+## mTLS Configuration
+
+For production deployments, enable mTLS to require client certificate authentication.
+
+### Enable mTLS
+
+```bash
+# Set environment variable
+echo "MTLS_ENABLED=true" >> .env
+
+# Generate certificates (if not already done)
+make generate-certs
+
+# Reinstall alerting stack
+make install-alerting
+```
+
+### Configuration
+
+When `MTLS_ENABLED=true`, Falcosidekick is configured with:
+
+```yaml
+tlsserver:
+  deploy: true
+  certfile: /certs/server/server.crt
+  keyfile: /certs/server/server.key
+  mutualtls: true
+  cacertfile: /certs/ca/ca.crt
+```
+
+### Test mTLS Connection
+
+```bash
+# Without client cert (should fail)
+curl https://localhost:2801/healthz --cacert certs/ca/ca.crt
+
+# With client cert (should succeed)
+curl https://localhost:2801/healthz \
+  --cacert certs/ca/ca.crt \
+  --cert certs/clients/local.crt \
+  --key certs/clients/local.key
+```
+
+See [Security Hardening](../docs/security-hardening.md) for complete mTLS documentation.
+
+---
+
 ## Testing
 
 Generate a test alert:
 ```bash
+# HTTP mode
 curl -X POST http://localhost:2801/test
+
+# mTLS mode
+curl -X POST https://localhost:2801/test \
+  --cacert certs/ca/ca.crt \
+  --cert certs/clients/local.crt \
+  --key certs/clients/local.key
 ```

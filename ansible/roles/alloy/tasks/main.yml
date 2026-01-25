@@ -38,6 +38,31 @@
         source: pull
       tags: alloy
 
+    - name: Set Alloy container volumes (without mTLS)
+      ansible.builtin.set_fact:
+        alloy_volumes:
+          - /etc/alloy:/etc/alloy:ro
+          - /var/log:/var/log:ro
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+          - /:/host:ro
+          - /sys:/host/sys:ro
+          - /proc:/host/proc:ro
+      when: not (mtls_enabled | default(false) | bool)
+      tags: alloy
+
+    - name: Set Alloy container volumes (with mTLS)
+      ansible.builtin.set_fact:
+        alloy_volumes:
+          - /etc/alloy:/etc/alloy:ro
+          - /var/log:/var/log:ro
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+          - /:/host:ro
+          - /sys:/host/sys:ro
+          - /proc:/host/proc:ro
+          - /etc/sib/certs:/etc/sib/certs:ro
+      when: mtls_enabled | default(false) | bool
+      tags: alloy
+
     - name: Run Alloy container
       community.docker.docker_container:
         name: sib-alloy
@@ -46,13 +71,7 @@
         restart_policy: unless-stopped
         network_mode: host
         pid_mode: host
-        volumes:
-          - /etc/alloy:/etc/alloy:ro
-          - /var/log:/var/log:ro
-          - /var/run/docker.sock:/var/run/docker.sock:ro
-          - /:/host:ro
-          - /sys:/host/sys:ro
-          - /proc:/host/proc:ro
+        volumes: "{{ alloy_volumes }}"
         env:
           HOST_ROOT: /host
           HOST_PROC: /host/proc

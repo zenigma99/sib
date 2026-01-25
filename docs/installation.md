@@ -210,6 +210,24 @@ make enable-remote
 
 This exposes VictoriaLogs (9428) and VictoriaMetrics (8428) externally — or Loki (3100) and Prometheus (9090) if using the Grafana stack. Configure your firewall appropriately.
 
+### Enable mTLS (Recommended for Production)
+
+For encrypted communication between components:
+
+```bash
+# Generate certificates
+make generate-certs
+
+# Enable mTLS
+echo "MTLS_ENABLED=true" >> .env
+
+# Reinstall with mTLS
+make install-alerting
+make install-detection
+```
+
+> **Tip:** For fresh installs, set `MTLS_ENABLED=true` and run `make generate-certs` **before** `make install`. See [Security Hardening](security-hardening.md) for the complete fresh install workflow.
+
 ### Install AI Analysis (Optional)
 
 ```bash

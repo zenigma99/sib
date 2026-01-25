@@ -9,13 +9,22 @@ services:
       - "0.0.0.0:${SIDEKICK_PORT:-2801}:2801"
     volumes:
       - ./config/config.yaml:/etc/falcosidekick/config.yaml:ro
+      # mTLS certificates (mounted when MTLS_ENABLED=true)
+      - ../certs:/certs:ro
     command: ["-c", "/etc/falcosidekick/config.yaml"]
     environment:
       - DEBUG=${SIDEKICK_DEBUG:-false}
+      # mTLS configuration (optional - disabled by default)
+      - WEBSERVER_SSL=${MTLS_ENABLED:-false}
+      - WEBSERVER_CERTFILE=/certs/server/server.crt
+      - WEBSERVER_KEYFILE=/certs/server/server.key
+      - WEBSERVER_MUTUALTLS=${MTLS_ENABLED:-false}
+      - WEBSERVER_CACERTFILE=/certs/ca/ca.crt
     networks:
       - sib-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:2801/healthz"]
+      # Check if port is listening (works with both HTTP and mTLS modes)
+      test: ["CMD-SHELL", "nc -z localhost 2801"]
       interval: 30s
       timeout: 10s
       retries: 3

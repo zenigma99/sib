@@ -5,3 +5,7 @@ debug: false
 # Works with both Loki (STACK=grafana) and VictoriaLogs (STACK=vm)
 loki:
   hostport: "__LOKI_HOSTPORT__"
+
+# Webserver configuration
+# mTLS settings are injected by install-alerting when MTLS_ENABLED=true
+__WEBSERVER_CONFIG__

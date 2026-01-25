@@ -168,7 +168,7 @@ Restrict access to fleet nodes only:
 ```bash
 # UFW example
 ufw allow from 192.168.1.0/24 to any port 3100  # Loki
-ufw allow from 192.168.1.0/24 to any port 9090  # Prometheus  
+ufw allow from 192.168.1.0/24 to any port 9090  # Prometheus
 ufw allow from 192.168.1.0/24 to any port 2801  # Sidekick
 
 # iptables example
@@ -176,6 +176,70 @@ iptables -A INPUT -p tcp -s 192.168.1.0/24 --dport 3100 -j ACCEPT
 iptables -A INPUT -p tcp -s 192.168.1.0/24 --dport 9090 -j ACCEPT
 iptables -A INPUT -p tcp -s 192.168.1.0/24 --dport 2801 -j ACCEPT
 ```
+
+---
+
+## Enable mTLS for Encrypted Fleet Communication
+
+For production deployments, enable mutual TLS (mTLS) to encrypt all communication between fleet agents and the SIB server.
+
+### Quick mTLS Setup
+
+> **Fresh Install?** If setting up a new SIB server with mTLS, generate certificates **before** running `make install`:
+> ```bash
+> sed -i 's/MTLS_ENABLED=false/MTLS_ENABLED=true/' .env
+> make generate-certs
+> make install
+> ```
+
+For existing SIB installations:
+
+```bash
+# 1. Generate CA and server certificates
+make generate-certs
+
+# 2. Generate client certificates for all fleet hosts
+make generate-fleet-certs
+
+# 3. Enable mTLS on SIB server
+echo "MTLS_ENABLED=true" >> .env
+make install-alerting
+make install-detection
+
+# 4. Enable mTLS in Ansible configuration
+# Edit ansible/inventory/group_vars/all.yml:
+# mtls_enabled: true
+
+# 5. Deploy fleet with mTLS
+make deploy-fleet
+```
+
+### Per-Host Certificate Generation
+
+If you add a new host later:
+
+```bash
+# Generate certificate for the new host
+make generate-client-cert HOST=new-server
+
+# Deploy to just that host
+make deploy-fleet LIMIT=new-server
+```
+
+### Verify mTLS is Working
+
+```bash
+# Check Falcosidekick logs for TLS connections
+docker logs sib-sidekick 2>&1 | grep -i tls
+
+# Test mTLS connection manually
+openssl s_client -connect localhost:2801 \
+  -CAfile certs/ca/ca.crt \
+  -cert certs/clients/local.crt \
+  -key certs/clients/local.key
+```
+
+See [Security Hardening](security-hardening.md) for complete mTLS documentation.
 
 ---
 

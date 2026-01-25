@@ -352,6 +352,7 @@ SIDEKICK_PORT=2801
 - Grafana and Sidekick API are externally accessible (for fleet support)
 - Falco requires privileged access for syscall monitoring
 - Change default Grafana password in production
+- **mTLS available** for encrypted fleet communication
 
 ### Hardening Checklist
 
@@ -360,6 +361,7 @@ SIDEKICK_PORT=2801
 - Rotate default credentials before production use
 - Set retention limits for Loki/Prometheus
 - Back up Grafana and Loki volumes
+- Enable mTLS for production fleet deployments (`make generate-certs`)
 
 See [docs/security-hardening.md](docs/security-hardening.md) for full guidance.
 

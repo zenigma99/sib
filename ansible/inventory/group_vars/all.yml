@@ -6,8 +6,10 @@
 # =============================================================================
 
 sib_server: "192.168.1.163"
-sib_loki_url: "http://{{ sib_server }}:3100"
-sib_prometheus_url: "http://{{ sib_server }}:9090"
+# Storage URLs - automatically switch to HTTPS when mTLS is enabled
+# Note: Port numbers may differ for TLS endpoints (configured in storage backends)
+sib_loki_url: "{{ 'https' if mtls_enabled | default(false) else 'http' }}://{{ sib_server }}:{{ '9429' if mtls_enabled | default(false) else '9428' }}"
+sib_prometheus_url: "{{ 'https' if mtls_enabled | default(false) else 'http' }}://{{ sib_server }}:{{ '8429' if mtls_enabled | default(false) else '8428' }}"
 
 # =============================================================================
 # Docker Configuration (Static Binary Installation)
@@ -41,7 +43,21 @@ falco_custom_rules:
 # Falco outputs - send to central Falcosidekick
 falco_outputs:
   http_enabled: true
-  http_url: "http://{{ sib_server }}:2801"
+  http_url: "{{ 'https' if mtls_enabled | default(false) else 'http' }}://{{ sib_server }}:2801"
+
+# =============================================================================
+# mTLS Configuration (Fleet Security)
+# =============================================================================
+
+# Enable mutual TLS for encrypted communication between fleet and server
+# Requires certificates: run 'make generate-certs' and 'make generate-fleet-certs'
+mtls_enabled: false
+
+# Certificate paths on fleet hosts (set by certs role)
+mtls_cert_dir: /etc/sib/certs
+mtls_ca_cert: "{{ mtls_cert_dir }}/ca.crt"
+mtls_client_cert: "{{ mtls_cert_dir }}/client.crt"
+mtls_client_key: "{{ mtls_cert_dir }}/client.key"
 
 # =============================================================================
 # Alloy Configuration (Log & Metrics Shipper)

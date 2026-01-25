@@ -39,7 +39,7 @@ time_format_iso_8601: true
 
 http_output:
   enabled: true
-  url: "http://sib-sidekick:2801/"
+  url: "__SIDEKICK_URL__"
   user_agent: "falcosidekick"
 
 # ---------------------------------------------

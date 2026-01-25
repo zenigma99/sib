@@ -68,6 +68,13 @@ loki.process "docker" {
 loki.write "sib" {
   endpoint {
     url = "{{ sib_loki_url }}/loki/api/v1/push"
+{% if mtls_enabled | default(false) | bool %}
+    tls_config {
+      ca_file   = "{{ mtls_ca_cert }}"
+      cert_file = "{{ mtls_client_cert }}"
+      key_file  = "{{ mtls_client_key }}"
+    }
+{% endif %}
   }
   external_labels = {
     cluster   = "sib-fleet",
@@ -104,6 +111,13 @@ prometheus.scrape "node" {
 prometheus.remote_write "sib" {
   endpoint {
     url = "{{ sib_prometheus_url }}/api/v1/write"
+{% if mtls_enabled | default(false) | bool %}
+    tls_config {
+      ca_file   = "{{ mtls_ca_cert }}"
+      cert_file = "{{ mtls_client_cert }}"
+      key_file  = "{{ mtls_client_key }}"
+    }
+{% endif %}
   }
   external_labels = {
     cluster = "sib-fleet",

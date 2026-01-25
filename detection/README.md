@@ -26,6 +26,37 @@ Edit `config/falco.yaml`:
 - `json_output`: Enable JSON output for Falcosidekick
 - `priority`: Minimum alert priority
 - `buffered_outputs`: Performance optimization
+- `http_output`: Output destination (Falcosidekick)
+
+### mTLS Configuration
+
+For production deployments, enable mTLS to encrypt communication with Falcosidekick.
+
+```bash
+# Set environment variable
+echo "MTLS_ENABLED=true" >> .env
+
+# Generate certificates (if not already done)
+make generate-certs
+
+# Reinstall detection stack
+make install-detection
+```
+
+When `MTLS_ENABLED=true`, Falco's http_output is configured with:
+
+```yaml
+http_output:
+  enabled: true
+  url: "https://sib-sidekick:2801/"
+  insecure: false
+  ca_cert: /etc/falco/certs/ca/ca.crt
+  client_cert: /etc/falco/certs/clients/local.crt
+  client_key: /etc/falco/certs/clients/local.key
+  mtls: true
+```
+
+See [Security Hardening](../docs/security-hardening.md) for complete mTLS documentation.
 
 ### Rules
 - `config/rules/falco_rules.yaml`: Default rules (from Falco)

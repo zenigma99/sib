@@ -24,9 +24,19 @@ if [ -f "$SCRIPT_DIR/../.env" ]; then
 fi
 
 STACK="${STACK:-grafana}"
-SIDEKICK_URL="${SIDEKICK_URL:-http://localhost:2801}"
+MTLS_ENABLED="${MTLS_ENABLED:-false}"
 TIMEOUT=60
 TEST_MARKER="sib-first-alert-$(date +%s)"
+
+# Set Sidekick URL and curl options based on mTLS
+CERTS_DIR="$SCRIPT_DIR/../certs"
+if [ "$MTLS_ENABLED" = "true" ]; then
+    SIDEKICK_URL="${SIDEKICK_URL:-https://localhost:2801}"
+    SIDEKICK_CURL_OPTS="--cacert $CERTS_DIR/ca/ca.crt --cert $CERTS_DIR/clients/local.crt --key $CERTS_DIR/clients/local.key"
+else
+    SIDEKICK_URL="${SIDEKICK_URL:-http://localhost:2801}"
+    SIDEKICK_CURL_OPTS=""
+fi
 
 # Set URLs based on stack
 if [ "$STACK" = "vm" ]; then
@@ -57,7 +67,7 @@ check_logs_ready() {
 }
 
 for i in {1..30}; do
-    if check_logs_ready && curl -sf "${SIDEKICK_URL}/healthz" >/dev/null 2>&1; then
+    if check_logs_ready && curl -sf $SIDEKICK_CURL_OPTS "${SIDEKICK_URL}/healthz" >/dev/null 2>&1; then
         break
     fi
     sleep 1
@@ -69,7 +79,7 @@ if ! check_logs_ready; then
     exit 1
 fi
 
-if ! curl -sf "${SIDEKICK_URL}/healthz" >/dev/null 2>&1; then
+if ! curl -sf $SIDEKICK_CURL_OPTS "${SIDEKICK_URL}/healthz" >/dev/null 2>&1; then
     echo -e "${RED}✗ Falcosidekick is not ready${NC}"
     exit 1
 fi

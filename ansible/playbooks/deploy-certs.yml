@@ -1,0 +1,50 @@
+# Deploy mTLS Certificates to Fleet
+# Distributes certificates without full agent redeployment
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/deploy-certs.yml
+#   ansible-playbook -i inventory/hosts.yml playbooks/deploy-certs.yml --limit webserver
+---
+
+- name: Deploy mTLS Certificates to Fleet
+  hosts: fleet
+  become: true
+
+  pre_tasks:
+    - name: Validate mTLS is enabled
+      ansible.builtin.fail:
+        msg: |
+          mTLS is not enabled in group_vars/all.yml
+          Set mtls_enabled: true to use this playbook
+      when: not (mtls_enabled | default(false) | bool)
+      tags: always
+
+    - name: Display deployment info
+      ansible.builtin.debug:
+        msg: |
+          Deploying certificates to {{ inventory_hostname }}
+          CA cert:     {{ mtls_ca_cert }}
+          Client cert: {{ mtls_client_cert }}
+          Client key:  {{ mtls_client_key }}
+      tags: always
+
+  roles:
+    - role: certs
+      tags: [certs, security]
+
+  post_tasks:
+    - name: Verify certificates deployed
+      ansible.builtin.stat:
+        path: "{{ mtls_client_cert }}"
+      register: cert_check
+      tags: verify
+
+    - name: Certificate deployment summary
+      ansible.builtin.debug:
+        msg: |
+          ✅ Certificates deployed to {{ inventory_hostname }}
+
+          CA certificate:     {{ mtls_ca_cert }} - {{ 'OK' if cert_check.stat.exists else 'MISSING' }}
+          Client certificate: {{ mtls_client_cert }} - {{ 'OK' if cert_check.stat.exists else 'MISSING' }}
+          Client key:         {{ mtls_client_key }} - {{ 'OK' if cert_check.stat.exists else 'MISSING' }}
+      tags: verify

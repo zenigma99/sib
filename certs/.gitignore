@@ -1,0 +1,18 @@
+# Ignore all certificate files by default
+*.crt
+*.key
+*.pem
+*.csr
+*.cnf
+*.srl
+
+# But allow CA certificate (public part is safe to distribute)
+!ca/ca.crt
+
+# Allow this .gitignore and README
+!.gitignore
+!README.md
+
+# Ignore backup files
+*.bak
+*.backup

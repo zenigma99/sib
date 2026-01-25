@@ -7,15 +7,15 @@ Deploy and manage SIB security agents across your infrastructure.
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    SIB Central Server                    │
-│  ┌─────────┐ ┌──────┐ ┌────────────┐ ┌─────────┐       │
-│  │ Grafana │ │ Loki │ │ Prometheus │ │Sidekick │       │
-│  └─────────┘ └──────┘ └────────────┘ └─────────┘       │
-└─────────────────────────▲──────────────▲────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      SIB Central Server                      │
+│  ┌─────────┐ ┌──────────────┐ ┌────────────────┐ ┌────────┐ │
+│  │ Grafana │ │ VictoriaLogs │ │ VictoriaMetrics│ │Sidekick│ │
+│  └─────────┘ └──────────────┘ └────────────────┘ └────────┘ │
+└─────────────────────────▲──────────────▲────────────────────┘
                           │              │
             ┌─────────────┼──────────────┼─────────────┐
-            │             │              │             │
+            │             │   (mTLS)     │             │
      ┌──────┴──────┐ ┌────┴────┐ ┌──────┴──────┐      │
      │   Host A    │ │  Host B │ │   Host C    │  ... │
      │ Falco+Alloy │ │ Falco+  │ │ Falco+Alloy │      │
@@ -23,6 +23,8 @@ Deploy and manage SIB security agents across your infrastructure.
             └─────────────────────────────────────────┘
                      Managed by Ansible (in Docker)
 ```
+
+> **Note:** Default stack uses VictoriaLogs + VictoriaMetrics. Set `STACK=grafana` in `.env` to use Loki + Prometheus instead.
 
 ## Quick Start
 
@@ -296,14 +298,57 @@ ssh user@host "curl -s http://SIB_SERVER:2801/healthz"
 make deploy-fleet LIMIT=problematic-host
 ```
 
+## mTLS Encryption
+
+For production deployments, enable mutual TLS (mTLS) to encrypt all communication between fleet agents and the SIB server.
+
+### Quick mTLS Setup
+
+```bash
+# 1. Generate certificates on SIB server
+make generate-certs
+make generate-fleet-certs
+
+# 2. Enable mTLS on SIB server
+echo "MTLS_ENABLED=true" >> .env
+make install-alerting
+make install-detection
+
+# 3. Enable mTLS in Ansible
+# Edit ansible/inventory/group_vars/all.yml:
+# mtls_enabled: true
+
+# 4. Deploy fleet with mTLS
+make deploy-fleet
+```
+
+### Configuration
+
+In `inventory/group_vars/all.yml`:
+
+```yaml
+# Enable mTLS for Falco → Falcosidekick communication
+mtls_enabled: true
+
+# Certificate paths on fleet hosts (set by certs role)
+mtls_cert_dir: /etc/sib/certs
+mtls_ca_cert: "{{ mtls_cert_dir }}/ca.crt"
+mtls_client_cert: "{{ mtls_cert_dir }}/client.crt"
+mtls_client_key: "{{ mtls_cert_dir }}/client.key"
+```
+
+See [Security Hardening](../docs/security-hardening.md) for complete mTLS documentation.
+
+---
+
 ## Security Notes
 
 1. **SSH Keys**: Use SSH keys, not passwords
 2. **Become**: Playbooks use `become: true` (sudo)
 3. **Network**: Fleet hosts need outbound access to SIB server ports:
-   - 3100 (Loki)
+   - 3100 (Loki) or 9428 (VictoriaLogs)
    - 2801 (Falcosidekick)
-   - 9090 (Prometheus, if using remote write)
+   - 9090 (Prometheus) or 8428 (VictoriaMetrics)
 
 4. **Firewall**: Sidekick API (2801) is exposed externally for fleet access. Restrict to fleet nodes only:
    ```bash

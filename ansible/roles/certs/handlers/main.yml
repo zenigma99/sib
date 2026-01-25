@@ -1,0 +1,32 @@
+# Certs role handlers
+---
+
+- name: Restart Falco
+  ansible.builtin.systemd:
+    name: "{{ 'falco-modern-bpf' if effective_deployment | default('native') | trim == 'native' else 'docker' }}"
+    state: restarted
+  when: effective_deployment | default('native') | trim == 'native'
+  listen: Restart Falco
+
+- name: Restart Falco container
+  community.docker.docker_container:
+    name: sib-falco
+    state: started
+    restart: true
+  when: effective_deployment | default('native') | trim == 'docker'
+  listen: Restart Falco
+
+- name: Restart Alloy
+  ansible.builtin.systemd:
+    name: alloy
+    state: restarted
+  when: effective_deployment | default('native') | trim == 'native'
+  listen: Restart Alloy
+
+- name: Restart Alloy container
+  community.docker.docker_container:
+    name: sib-alloy
+    state: started
+    restart: true
+  when: effective_deployment | default('native') | trim == 'docker'
+  listen: Restart Alloy

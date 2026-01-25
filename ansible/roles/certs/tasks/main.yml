@@ -1,0 +1,113 @@
+# Certs role - distributes mTLS certificates to fleet hosts
+---
+
+- name: Display mTLS status
+  ansible.builtin.debug:
+    msg: "mTLS enabled: {{ mtls_enabled | default(false) }}"
+  tags: certs
+
+- name: Skip certificate distribution if mTLS is disabled
+  ansible.builtin.debug:
+    msg: "Skipping certificate distribution (mTLS disabled)"
+  when: not (mtls_enabled | default(false) | bool)
+  tags: certs
+
+- name: Distribute certificates when mTLS is enabled
+  when: mtls_enabled | default(false) | bool
+  tags: certs
+  block:
+    # ========================================================================
+    # Verify certificates exist on control node
+    # ========================================================================
+
+    - name: Check if CA certificate exists on control node
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../certs/ca/ca.crt"
+      delegate_to: localhost
+      register: ca_cert_stat
+      run_once: true
+
+    - name: Check if client certificate exists for this host
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../certs/clients/{{ inventory_hostname }}.crt"
+      delegate_to: localhost
+      register: client_cert_stat
+
+    - name: Fail if CA certificate is missing
+      ansible.builtin.fail:
+        msg: |
+          CA certificate not found at: {{ playbook_dir }}/../certs/ca/ca.crt
+          Run 'make generate-certs' on the SIB server first.
+      when: not ca_cert_stat.stat.exists
+
+    - name: Warn if client certificate is missing for this host
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Client certificate not found for '{{ inventory_hostname }}'.
+          Expected: {{ playbook_dir }}/../certs/clients/{{ inventory_hostname }}.crt
+          Run: make generate-client-cert HOST={{ inventory_hostname }}
+      when: not client_cert_stat.stat.exists
+
+    - name: Fail if client certificate is missing
+      ansible.builtin.fail:
+        msg: |
+          Client certificate not found for host '{{ inventory_hostname }}'.
+          Run: make generate-client-cert HOST={{ inventory_hostname }}
+      when: not client_cert_stat.stat.exists
+
+    # ========================================================================
+    # Create certificate directory on target host
+    # ========================================================================
+
+    - name: Create certificates directory
+      ansible.builtin.file:
+        path: /etc/sib/certs
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # ========================================================================
+    # Distribute certificates
+    # ========================================================================
+
+    - name: Copy CA certificate
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../certs/ca/ca.crt"
+        dest: /etc/sib/certs/ca.crt
+        owner: root
+        group: root
+        mode: '0644'
+      notify:
+        - Restart Falco
+        - Restart Alloy
+
+    - name: Copy client certificate
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../certs/clients/{{ inventory_hostname }}.crt"
+        dest: /etc/sib/certs/client.crt
+        owner: root
+        group: root
+        mode: '0644'
+      notify:
+        - Restart Falco
+        - Restart Alloy
+
+    - name: Copy client private key
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../certs/clients/{{ inventory_hostname }}.key"
+        dest: /etc/sib/certs/client.key
+        owner: root
+        group: root
+        mode: '0600'
+      notify:
+        - Restart Falco
+        - Restart Alloy
+
+    - name: Display certificate distribution status
+      ansible.builtin.debug:
+        msg: |
+          Certificates distributed to {{ inventory_hostname }}:
+            CA certificate:     /etc/sib/certs/ca.crt
+            Client certificate: /etc/sib/certs/client.crt
+            Client key:         /etc/sib/certs/client.key

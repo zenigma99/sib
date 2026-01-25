@@ -8,11 +8,14 @@
     mode: '0755'
   tags: falco
 
-- name: Copy Falco configuration
-  ansible.builtin.copy:
-    src: /detection-config/falco.yaml
+- name: Deploy Falco configuration from template
+  ansible.builtin.template:
+    src: falco.yaml.j2
     dest: /etc/sib/falco/falco.yaml
+    owner: root
+    group: root
     mode: '0644'
+  notify: Restart Falco container
   tags: falco
 
 - name: Copy Falco rules
@@ -77,6 +80,31 @@
   when: not is_lxc and falco_container.exists
   tags: falco
 
+- name: Set Falco container volumes (without mTLS)
+  ansible.builtin.set_fact:
+    falco_volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /etc:/host/etc:ro
+      - /dev:/host/dev:ro
+      - /etc/sib/falco/falco.yaml:/etc/falco/falco.yaml:ro
+      - /etc/sib/falco/rules:/etc/falco/rules:ro
+  when: not (mtls_enabled | default(false) | bool)
+  tags: falco
+
+- name: Set Falco container volumes (with mTLS)
+  ansible.builtin.set_fact:
+    falco_volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /etc:/host/etc:ro
+      - /dev:/host/dev:ro
+      - /etc/sib/falco/falco.yaml:/etc/falco/falco.yaml:ro
+      - /etc/sib/falco/rules:/etc/falco/rules:ro
+      - /etc/sib/certs:/etc/sib/certs:ro
+  when: mtls_enabled | default(false) | bool
+  tags: falco
+
 - name: Run Falco container
   community.docker.docker_container:
     name: sib-falco
@@ -86,13 +114,7 @@
     privileged: true
     network_mode: host
     pid_mode: host
-    volumes:
-      - /var/run/docker.sock:/host/var/run/docker.sock:ro
-      - /proc:/host/proc:ro
-      - /etc:/host/etc:ro
-      - /dev:/host/dev:ro
-      - /etc/sib/falco/falco.yaml:/etc/falco/falco.yaml:ro
-      - /etc/sib/falco/rules:/etc/falco/rules:ro
+    volumes: "{{ falco_volumes }}"
     env:
       HOST_ROOT: /host
       FALCO_BPF_PROBE: ""
