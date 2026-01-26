@@ -15,7 +15,7 @@ Get the **core SIEM stack** running with the smallest footprint and no optional 
 
 - **Falco** (detection)
 - **Falcosidekick** (alert routing)
-- **Loki** (log storage)
+- **Log storage** (VictoriaLogs or Loki, depending on stack)
 - **Grafana** (dashboards)
 
 This excludes:
@@ -49,10 +49,17 @@ make install
 ## Minimal + Manual (If You Prefer Explicit Steps)
 
 ```bash
-make install-storage
+# For VictoriaMetrics stack (default, recommended)
+make install-storage-vm
 make install-grafana
 make install-alerting
 make install-detection
+
+# Or for Grafana stack (Loki + Prometheus)
+# make install-storage-grafana
+# make install-grafana
+# make install-alerting
+# make install-detection
 ```
 
 ---

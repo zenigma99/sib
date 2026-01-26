@@ -18,7 +18,7 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 - **Demo Mode**: Generate realistic security events to see dashboards in action
 - **Sigma Rules**: Convert Sigma rules to Falco/LogsQL format
 - **Threat Intel**: IP blocklists from Abuse.ch, Spamhaus, and more
-- **Remote Collectors**: Ship logs from multiple hosts with Grafana Alloy
+- **Remote Collectors**: Ship logs/metrics from multiple hosts (Vector+vmagent or Alloy)
 - **Fleet Management**: Dockerized Ansible for deploying agents across infrastructure (no local Ansible needed)
 - **Smart Deployment**: Auto-detects Docker, installs from static binaries if needed — works on any Linux
 - **AI-Powered Analysis** *(Beta)*: LLM-based alert analysis with attack vectors, MITRE ATT&CK mapping, and mitigation strategies
@@ -67,7 +67,7 @@ SIB provides a complete, self-hosted security monitoring stack for detecting thr
 |------------|-----|-----|------|-------|
 | **SIB Server** (single host) | 2 cores | 4GB | 20GB | Runs Falco + full stack |
 | **SIB Server** (with fleet) | 4 cores | 8GB | 50GB+ | More storage for logs from multiple hosts |
-| **Fleet Agent** | 1 core | 512MB | 1GB | Falco + Alloy only |
+| **Fleet Agent** | 1 core | 512MB | 1GB | Falco + collectors (vmagent or Alloy) |
 
 > 💡 **Not a network sniffer!** SIB uses Falco's eBPF-based syscall monitoring — it watches what programs do at the kernel level, not network packets. No mirror ports, TAPs, or bridge interfaces needed. Just install on any Linux host and it sees everything that host does.
 
@@ -109,7 +109,7 @@ SIB supports two monitoring stacks. Choose based on your preferences:
 | Stack | Components | Best For |
 |-------|------------|----------|
 | **`vm`** (default) | VictoriaLogs + VictoriaMetrics + node_exporter | 10x less RAM, faster queries, recommended |
-| **`grafana`** | Loki + Prometheus + Alloy | Grafana ecosystem, native integration |
+| **`grafana`** | Loki + Prometheus | Grafana ecosystem, native integration |
 
 ```bash
 # In .env - choose your stack (one simple setting)
@@ -421,9 +421,16 @@ The analysis page shows:
 
 Configure in `analysis/config.yaml`. See [analysis/README.md](analysis/README.md) for full documentation.
 
-## 📡 Remote Collectors (Alloy)
+## 📡 Remote Collectors
 
-SIB uses **Grafana Alloy** as a unified telemetry collector for remote hosts. Deploy lightweight collectors to ship logs and metrics to your central SIB server.
+Deploy lightweight collectors to ship logs and metrics from remote hosts to your central SIB server.
+
+### Collector Stacks
+
+| SIB Stack | Collectors | Components |
+|-----------|------------|------------|
+| `vm` (default) | VM Collectors | Vector (logs) + vmagent + node_exporter (metrics) |
+| `grafana` | Alloy | Grafana Alloy (logs + metrics) |
 
 ### Architecture
 
@@ -434,20 +441,20 @@ SIB uses **Grafana Alloy** as a unified telemetry collector for remote hosts. De
 │                                                                              │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                   │
 │  │   Host A     │    │   Host B     │    │   Host C     │                   │
-│  │   (Alloy)    │    │   (Alloy)    │    │   (Alloy)    │                   │
+│  │ (Collectors) │    │ (Collectors) │    │ (Collectors) │                   │
 │  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘                   │
 │         │                   │                   │                            │
-│         │     Logs (Loki Push)  +  Metrics (Remote Write)                   │
+│         │           Logs  +  Metrics (Remote Write)                         │
 │         │                   │                   │                            │
 │         └───────────────────┼───────────────────┘                            │
 │                             ▼                                                │
 │                   ┌──────────────────┐                                       │
 │                   │    SIB Server    │                                       │
 │                   │  ┌────────────┐  │                                       │
-│                   │  │    Loki    │  │  ◀── Logs with host labels           │
+│                   │  │VictoriaLogs│  │  ◀── Logs (or Loki for grafana stack)│
 │                   │  └────────────┘  │                                       │
 │                   │  ┌────────────┐  │                                       │
-│                   │  │ Prometheus │  │  ◀── Node metrics                    │
+│                   │  │VictoriaM.  │  │  ◀── Metrics (or Prometheus)         │
 │                   │  └────────────┘  │                                       │
 │                   │  ┌────────────┐  │                                       │
 │                   │  │  Grafana   │  │  ◀── Fleet Overview dashboard        │
@@ -465,7 +472,11 @@ On the SIB server, enable external access for collectors:
 make enable-remote
 ```
 
-This exposes Loki (3100) and Prometheus (9090) externally. Ensure your firewall is configured appropriately.
+This exposes storage endpoints externally:
+- **VM stack**: VictoriaLogs (9428), VictoriaMetrics (8428)
+- **Grafana stack**: Loki (3100), Prometheus (9090)
+
+Ensure your firewall is configured appropriately.
 
 ### Deploy Collector to Remote Host
 
@@ -478,9 +489,9 @@ make deploy-collector HOST=user@remote-host
 ```
 
 The deploy script will:
-1. Copy Alloy configuration to the remote host
+1. Copy collector configuration to the remote host
 2. Configure the SIB server address
-3. Start Alloy via Docker Compose
+3. Start collectors via Docker Compose
 4. Verify the deployment
 
 ### What Gets Collected
@@ -492,11 +503,9 @@ The deploy script will:
 | **Kernel Logs** | `/var/log/kern.log` | `job="kernel"` |
 | **Journal** | systemd journal | `job="journal"` |
 | **Docker Logs** | All containers | `job="docker"`, `container=...` |
-| **Node Metrics** | CPU, memory, disk, network | `job="node"`, `collector="alloy"` |
+| **Node Metrics** | CPU, memory, disk, network | `job="node"` |
 
-All data is tagged with:
-- `host` - hostname of the remote machine
-- `collector="alloy"` - identifies data from Alloy collectors
+All data is tagged with `host` (hostname of the remote machine).
 
 ### Manual Deployment
 
@@ -506,31 +515,41 @@ If you prefer manual deployment:
 # On the remote host
 mkdir -p ~/sib-collector/config
 
-# Copy and edit the config
-scp collectors/config/config.alloy user@remote:~/sib-collector/config/
-# Edit config.alloy - replace SIB_SERVER_IP with your SIB server IP
-
-# Copy compose file (use compose-vm.yaml or compose-grafana.yaml based on your stack)
+# For VM stack (default): copy Vector and vmagent configs
+scp collectors/config/vector.toml user@remote:~/sib-collector/config/
+scp collectors/config/vmagent.yml user@remote:~/sib-collector/config/
 scp collectors/compose-vm.yaml user@remote:~/sib-collector/compose.yaml
 
+# For Grafana stack: copy Alloy config
+# scp collectors/config/config.alloy user@remote:~/sib-collector/config/
+# scp collectors/compose-grafana.yaml user@remote:~/sib-collector/compose.yaml
+
+# Edit configs - replace SIB_SERVER with your SIB server IP
+
 # Start the collector
-ssh user@remote "cd ~/sib-collector && HOSTNAME=\$(hostname) docker compose up -d"
+ssh user@remote "cd ~/sib-collector && SIB_SERVER=192.168.1.100 HOSTNAME=\$(hostname) docker compose up -d"
 ```
 
 ### Verify Collector is Working
 
 ```bash
-# Check Alloy logs on remote host
-ssh user@remote "docker logs sib-alloy --tail 20"
+# VM stack (default) - check Vector and vmagent
+ssh user@remote "docker logs sib-vector --tail 20"
+ssh user@remote "docker logs sib-vmagent --tail 20"
 
-# Query VictoriaLogs for collector data (default stack)
-curl -s "http://localhost:9428/select/logsql/query?query=*" | head
+# Grafana stack - check Alloy
+# ssh user@remote "docker logs sib-alloy --tail 20"
 
-# Check metrics in VictoriaMetrics (default stack)
-curl -s 'http://localhost:8428/api/v1/query?query=node_uname_info'
+# Query logs on SIB server
+curl -s "http://localhost:9428/select/logsql/query?query=*" | head   # VM stack
+# curl -s "http://localhost:3100/loki/api/v1/query?query={job=~\".+\"}" | head  # Grafana stack
 
-# Or for Grafana stack: Loki at :3100, Prometheus at :9090
+# Check metrics
+curl -s 'http://localhost:8428/api/v1/query?query=node_uname_info'   # VM stack
+# curl -s 'http://localhost:9090/api/v1/query?query=node_uname_info'  # Grafana stack
 ```
+
+See [collectors/README.md](collectors/README.md) for detailed configuration.
 
 ### Fleet Overview Dashboard
 
