@@ -125,3 +125,4 @@ Monitor:
 - [Falco Security Advisories](https://github.com/falcosecurity/falco/security/advisories)
 - [Grafana Security Advisories](https://grafana.com/docs/grafana/latest/release-notes/)
 - [Loki Security](https://grafana.com/docs/loki/latest/)
+- [VictoriaMetrics Security](https://docs.victoriametrics.com/security/)
