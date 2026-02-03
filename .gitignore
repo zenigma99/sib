@@ -36,7 +36,8 @@ temp/
 *.backup
 
 # Secrets (never commit these)
-secrets/
+secrets/*
+!secrets/README.md
 *.pem
 *.key
 *.crt

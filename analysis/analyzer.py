@@ -356,8 +356,41 @@ class AlertAnalyzer:
         return results
 
 
+def read_secret(env_var: str, default: str = '') -> str:
+    """Read a secret from environment variable or file.
+
+    Supports Docker-native secret pattern:
+    - If {ENV_VAR}_FILE is set, read secret from that file path
+    - Otherwise, use {ENV_VAR} value directly
+    - Falls back to default if neither is set
+
+    Example:
+        ANTHROPIC_API_KEY=sk-xxx           # Direct value
+        ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic  # File-based
+    """
+    # Check for _FILE variant first (Docker secrets pattern)
+    file_var = f"{env_var}_FILE"
+    file_path = os.environ.get(file_var)
+
+    if file_path:
+        try:
+            with open(file_path, 'r') as f:
+                return f.read().strip()
+        except (IOError, OSError) as e:
+            print(f"Warning: Could not read secret from {file_path}: {e}", file=sys.stderr)
+
+    # Fall back to direct env var
+    return os.environ.get(env_var, default)
+
+
 def expand_env_vars(obj):
-    """Recursively expand environment variables in config values."""
+    """Recursively expand environment variables in config values.
+
+    Supports:
+    - ${VAR} - simple variable expansion
+    - ${VAR:-default} - with default value
+    - ${VAR}_FILE pattern for file-based secrets (via read_secret)
+    """
     import re
     if isinstance(obj, dict):
         return {k: expand_env_vars(v) for k, v in obj.items()}
@@ -368,6 +401,9 @@ def expand_env_vars(obj):
         def replace_var(match):
             var_name = match.group(1)
             default = match.group(3) if match.group(3) else ''
+            # Use read_secret for API key variables to support _FILE pattern
+            if 'API_KEY' in var_name or 'SECRET' in var_name or 'PASSWORD' in var_name:
+                return read_secret(var_name, default)
             return os.environ.get(var_name, default)
         # Pattern matches ${VAR} or ${VAR:-default}
         return re.sub(r'\$\{([^}:]+)(:-([^}]*))?\}', replace_var, obj)

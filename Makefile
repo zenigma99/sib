@@ -4,61 +4,73 @@
 # Usage: make <target>
 # Run 'make help' for available commands
 # ==========================================
+#
+# TABLE OF CONTENTS
+# -----------------
+#  Line ~30   Network
+#  Line ~40   Installation
+#  Line ~170  Start / Stop / Restart
+#  Line ~270  Uninstall
+#  Line ~330  Status & Health
+#  Line ~470  Logs
+#  Line ~510  Shell Access
+#  Line ~530  Testing & Demo
+#  Line ~570  Threat Intel & Sigma
+#  Line ~590  Utilities
+#  Line ~680  Remote Collectors
+#  Line ~760  mTLS Certificates
+#  Line ~850  Fleet Management (Ansible)
+#
+# ==========================================
 
-# Colors for output
-GREEN := \033[32m
-YELLOW := \033[33m
-RED := \033[31m
-CYAN := \033[36m
-RESET := \033[0m
-BOLD := \033[1m
-
-# Docker compose command - include root .env file for all stacks
-DOCKER_COMPOSE := docker compose --env-file $(CURDIR)/.env
+# Load shared configuration variables
+include config.mk
 
 # Default target
 .DEFAULT_GOAL := help
 
+.PHONY: help
 help: ## Show this help message
-	@echo ""
-	@echo "$(BOLD)🛡️  SIEM in a Box (SIB)$(RESET)"
-	@echo ""
-	@echo "$(CYAN)Usage:$(RESET)"
-	@echo "  make $(GREEN)<target>$(RESET)"
-	@echo ""
-	@echo "$(CYAN)Installation:$(RESET)"
-	@grep -E '^(install|install-detection|install-alerting|install-storage-grafana|install-storage-vm|install-grafana|install-analysis):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)Management:$(RESET)"
-	@grep -E '^(start|stop|restart|status|uninstall):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)Health & Logs:$(RESET)"
-	@grep -E '^(health|doctor|logs|logs-falco|logs-sidekick|logs-storage|logs-grafana|logs-analysis):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)Testing & Demo:$(RESET)"
-	@grep -E '^(test-alert|demo|demo-quick|test-rules):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)Threat Intel & Sigma:$(RESET)"
-	@grep -E '^(update-threatintel|convert-sigma):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)Utilities:$(RESET)"
-	@grep -E '^(open|info|ps|clean|check-ports|validate):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)Remote Collectors:$(RESET)"
-	@grep -E '^(enable-remote|deploy-collector):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)Fleet Management (Ansible):$(RESET)"
-	@grep -E '^(fleet-build|deploy-fleet|update-rules|fleet-health|fleet-docker-check|remove-fleet|fleet-ping|fleet-shell):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)mTLS Certificates:$(RESET)"
-	@grep -E '^(generate-certs|generate-client-cert|generate-fleet-certs|verify-certs|rotate-certs|test-mtls|test-alert-mtls):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
-	@echo ""
-	@echo "$(CYAN)Stack-specific commands:$(RESET)"
-	@echo "  Commands follow the pattern: $(GREEN)<action>-<stack>$(RESET)"
-	@echo "  Example: make install-detection, make stop-alerting, make logs-storage"
-	@echo ""
+	@printf "\n"
+	@printf "$(BOLD)🛡️  SIEM in a Box (SIB)$(RESET)\n"
+	@printf "\n"
+	@printf "$(CYAN)Usage:$(RESET)\n"
+	@printf "  make $(GREEN)<target>$(RESET)\n"
+	@printf "\n"
+	@printf "$(CYAN)Installation:$(RESET)\n"
+	@grep -E '^(install|install-detection|install-alerting|install-storage-grafana|install-storage-vm|install-grafana|install-analysis):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)Management:$(RESET)\n"
+	@grep -E '^(start|stop|restart|status|uninstall):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)Health & Logs:$(RESET)\n"
+	@grep -E '^(health|doctor|logs|logs-falco|logs-sidekick|logs-storage|logs-grafana|logs-analysis):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)Testing & Demo:$(RESET)\n"
+	@grep -E '^(test-alert|demo|demo-quick|test-rules):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)Threat Intel & Sigma:$(RESET)\n"
+	@grep -E '^(update-threatintel|convert-sigma):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)Utilities:$(RESET)\n"
+	@grep -E '^(open|info|ps|clean|check-ports|validate):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)Remote Collectors:$(RESET)\n"
+	@grep -E '^(enable-remote|deploy-collector):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)Fleet Management (Ansible):$(RESET)\n"
+	@grep -E '^(fleet-build|deploy-fleet|update-rules|fleet-health|fleet-docker-check|remove-fleet|fleet-ping|fleet-shell):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)mTLS Certificates:$(RESET)\n"
+	@grep -E '^(generate-certs|generate-client-cert|generate-fleet-certs|verify-certs|rotate-certs|test-mtls|test-alert-mtls):.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-22s$(RESET) %s\n", $$1, $$2}'
+	@printf "\n"
+	@printf "$(CYAN)Stack-specific commands:$(RESET)\n"
+	@printf "  Commands follow the pattern: $(GREEN)<action>-<stack>$(RESET)\n"
+	@printf "  Example: make install-detection, make stop-alerting, make logs-storage\n"
+	@printf "\n"
 
 # ==================== Network ====================
+.PHONY: network
 
 network: ## Create shared Docker network
 	@docker info >/dev/null 2>&1 || (echo "$(RED)✗ Docker is not running. Please start Docker first.$(RESET)" && exit 1)
@@ -66,6 +78,7 @@ network: ## Create shared Docker network
 		(docker network create sib-network && echo "$(GREEN)✓ Created sib-network$(RESET)")
 
 # ==================== Installation ====================
+.PHONY: install install-detection install-alerting install-storage-grafana install-storage-vm install-grafana install-analysis
 
 install: network ## Install all security stacks
 	@if [ ! -f .env ]; then \
@@ -197,6 +210,7 @@ install-analysis: network ## Install AI Analysis API service
 	@echo "  • Dashboard: $(YELLOW)Events Explorer$(RESET) now has AI analysis links"
 
 # ==================== Start ====================
+.PHONY: start start-detection start-alerting start-storage-grafana start-storage-vm start-grafana start-analysis
 
 start: ## Start all stacks based on STACK setting
 	@set -a; . ./.env 2>/dev/null || true; set +a; \
@@ -230,6 +244,7 @@ start-analysis: ## Start AI Analysis API
 	@cd analysis && $(DOCKER_COMPOSE) start
 
 # ==================== Stop ====================
+.PHONY: stop stop-detection stop-alerting stop-storage-grafana stop-storage-vm stop-grafana stop-analysis
 
 stop: ## Stop all stacks based on STACK setting
 	@$(MAKE) --no-print-directory stop-detection
@@ -263,6 +278,7 @@ stop-analysis: ## Stop AI Analysis API
 	@cd analysis && $(DOCKER_COMPOSE) stop
 
 # ==================== Restart ====================
+.PHONY: restart restart-detection restart-alerting restart-storage-grafana restart-storage-vm restart-grafana restart-analysis
 
 restart: ## Restart all stacks based on STACK setting
 	@set -a; . ./.env 2>/dev/null || true; set +a; \
@@ -296,6 +312,7 @@ restart-analysis: ## Restart AI Analysis API
 	@cd analysis && $(DOCKER_COMPOSE) restart
 
 # ==================== Uninstall ====================
+.PHONY: uninstall uninstall-detection uninstall-alerting uninstall-storage uninstall-grafana uninstall-analysis uninstall-collectors
 
 uninstall: ## Remove all stacks and volumes (with confirmation)
 	@echo "$(RED)$(BOLD)⚠️  WARNING: This will delete ALL security data!$(RESET)"
@@ -349,6 +366,7 @@ uninstall-collectors: ## Remove Alloy collectors and volumes
 	@echo "$(GREEN)✓ Collectors removed$(RESET)"
 
 # ==================== Status ====================
+.PHONY: status
 
 status: ## Show status of all stacks with health indicators
 	@echo ""
@@ -409,6 +427,7 @@ status: ## Show status of all stacks with health indicators
 	@echo ""
 
 # ==================== Health ====================
+.PHONY: health doctor
 
 health: ## Quick health check of all services
 	@echo ""
@@ -488,6 +507,7 @@ doctor: ## Diagnose common issues
 	@echo ""
 
 # ==================== Logs ====================
+.PHONY: logs logs-falco logs-sidekick logs-storage logs-grafana logs-analysis
 
 logs: ## Tail logs from all stacks
 	@echo "$(CYAN)Tailing all stack logs (Ctrl+C to stop)...$(RESET)"
@@ -521,6 +541,7 @@ logs-analysis: ## Tail AI Analysis API logs
 	@cd analysis && $(DOCKER_COMPOSE) logs -f
 
 # ==================== Shell Access ====================
+.PHONY: shell-falco shell-grafana shell-loki shell-analysis
 
 shell-falco: ## Open shell in Falco container
 	@docker exec -it sib-falco /bin/sh
@@ -535,6 +556,7 @@ shell-analysis: ## Open shell in Analysis container
 	@docker exec -it sib-analysis /bin/bash
 
 # ==================== Testing ====================
+.PHONY: test-alert demo demo-quick test-rules
 
 test-alert: ## Generate a test security alert
 	@echo ""
@@ -573,6 +595,7 @@ test-rules: ## Validate Falco rules syntax
 	@echo ""
 
 # ==================== Threat Intel & Sigma ====================
+.PHONY: update-threatintel convert-sigma
 
 update-threatintel: ## Download/update threat intelligence feeds
 	@./threatintel/update-feeds.sh
@@ -586,6 +609,7 @@ convert-sigma: ## Convert Sigma rules to Falco format
 	@echo "  $(YELLOW)cp sigma/rules/converted_falco_rules.yaml detection/config/rules/$(RESET)"
 
 # ==================== Utilities ====================
+.PHONY: open info ps check-ports validate clean update
 
 open: ## Open Grafana in browser
 	@echo "$(CYAN)Opening Grafana...$(RESET)"
@@ -690,19 +714,8 @@ endif
 	@echo ""
 	@echo "$(GREEN)✓ All stacks updated$(RESET)"
 
-.PHONY: help network install install-detection install-alerting install-storage-grafana install-storage-vm install-grafana install-analysis \
-	start start-detection start-alerting start-storage-grafana start-storage-vm start-grafana start-analysis \
-	stop stop-detection stop-alerting stop-storage-grafana stop-storage-vm stop-grafana stop-analysis \
-        restart restart-detection restart-alerting restart-storage-grafana restart-storage-vm restart-grafana restart-analysis \
-        uninstall uninstall-detection uninstall-alerting uninstall-storage uninstall-grafana uninstall-analysis uninstall-collectors \
-	status health doctor logs logs-falco logs-sidekick logs-storage logs-grafana logs-analysis \
-        shell-falco shell-grafana shell-loki shell-analysis \
-        test-alert demo demo-quick test-rules open info ps check-ports validate clean update \
-	enable-remote deploy-collector \
-	generate-certs generate-client-cert generate-fleet-certs verify-certs rotate-certs \
-	test-mtls test-alert-mtls
-
 # ==================== Remote Collectors ====================
+.PHONY: enable-remote deploy-collector
 
 enable-remote: ## Enable remote connections from collectors
 	@echo "$(CYAN)🌐 Enabling remote connections for collectors...$(RESET)"
@@ -760,6 +773,7 @@ deploy-collector: ## Deploy collector to remote host (HOST=user@host)
 	./collectors/scripts/deploy.sh $(HOST) $$SIB_IP
 
 # ==================== mTLS Certificates ====================
+.PHONY: generate-certs generate-client-cert generate-fleet-certs verify-certs rotate-certs test-mtls test-alert-mtls
 
 generate-certs: ## Generate CA, server, and local client certificates for mTLS
 	@echo "$(CYAN)🔐 Generating mTLS certificates...$(RESET)"
@@ -840,12 +854,7 @@ test-alert-mtls: ## Send test alert via mTLS
 	fi
 
 # ==================== Fleet Management (Ansible) ====================
-
-# Ansible runs in Docker - no local installation needed
-ANSIBLE_IMAGE := sib-ansible:latest
-ANSIBLE_RUN := docker compose -f ansible/compose.yaml run --rm ansible
-ANSIBLE_LIMIT := $(if $(LIMIT),--limit $(LIMIT),)
-ANSIBLE_ARGS := $(if $(ARGS),$(ARGS),)
+.PHONY: fleet-build deploy-fleet update-rules fleet-health fleet-docker-check remove-fleet fleet-shell fleet-ping
 
 fleet-build: ## Build Ansible Docker image for fleet management
 	@echo "$(CYAN)🔨 Building Ansible container...$(RESET)"

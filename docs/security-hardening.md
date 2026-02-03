@@ -137,7 +137,72 @@ mtls_enabled: true
 
 ---
 
-## 6) Reduce Data Retention
+## 6) Secret Management
+
+By default, secrets are stored in `.env` (which is gitignored). For production, use file-based secrets instead.
+
+### Why File-based Secrets?
+
+| Risk | `.env` Variables | File-based Secrets |
+|------|------------------|-------------------|
+| Process inspection | Visible in `/proc/*/environ` | Not exposed |
+| Debug logging | May leak in error messages | Isolated |
+| Environment inheritance | Inherited by child processes | Not inherited |
+
+### Using File-based Secrets
+
+SIB supports the `_FILE` suffix pattern (Docker-native approach):
+
+```bash
+# Instead of this in .env:
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
+
+# Use this:
+ANTHROPIC_API_KEY_FILE=/path/to/sib/secrets/anthropic_api_key
+```
+
+Create the secret file:
+```bash
+# Create secrets directory (already gitignored)
+mkdir -p secrets
+
+# Write secret to file (no trailing newline)
+echo -n "sk-ant-api03-xxxxx" > secrets/anthropic_api_key
+
+# Restrict permissions
+chmod 600 secrets/anthropic_api_key
+```
+
+### Supported Secrets
+
+| Direct Variable | File-based Alternative |
+|----------------|------------------------|
+| `ANTHROPIC_API_KEY` | `ANTHROPIC_API_KEY_FILE` |
+| `OPENAI_API_KEY` | `OPENAI_API_KEY_FILE` |
+| `AWS_SECRET_ACCESS_KEY` | `AWS_SECRET_ACCESS_KEY_FILE` |
+
+### Docker Compose Secrets (Advanced)
+
+For full Docker secrets support:
+
+```yaml
+services:
+  analysis:
+    secrets:
+      - anthropic_key
+    environment:
+      - ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic_key
+
+secrets:
+  anthropic_key:
+    file: ./secrets/anthropic_api_key
+```
+
+See `secrets/README.md` for more details.
+
+---
+
+## 7) Reduce Data Retention
 
 Adjust retention to avoid disk exhaustion. Configure in `.env`:
 
@@ -160,7 +225,7 @@ Or edit config files directly:
 
 ---
 
-## 7) Backups
+## 8) Backups
 
 Back up Grafana and storage data volumes regularly. Ensure your backup target is secure and encrypted.
 
@@ -180,7 +245,7 @@ storage_prometheus-data
 
 ---
 
-## 8) Run Health Checks
+## 9) Run Health Checks
 
 ```bash
 make health
@@ -189,7 +254,7 @@ make doctor
 
 ---
 
-## 9) Monitor Resource Usage
+## 10) Monitor Resource Usage
 
 Track disk and memory growth. Tune retention and sampling as needed.
 
