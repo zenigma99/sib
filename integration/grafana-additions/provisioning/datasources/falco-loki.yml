@@ -1,0 +1,21 @@
+# ==============================================
+# Grafana Datasource Provisioning for Falco/Loki
+# ==============================================
+# Copy this file to your Grafana provisioning/datasources/ directory.
+# The dashboards reference datasource uid "loki" - this must match.
+# ==============================================
+
+apiVersion: 1
+
+datasources:
+  # Loki - Falco Security Events
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: true
+    jsonData:
+      maxLines: 1000
+      timeout: 60

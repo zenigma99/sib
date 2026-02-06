@@ -1,0 +1,20 @@
+# ==============================================
+# Grafana Dashboard Provisioning for Falco
+# ==============================================
+# Copy this file to your Grafana provisioning/dashboards/ directory.
+# Then copy the loki/ folder with all JSON dashboards next to it.
+# ==============================================
+
+apiVersion: 1
+
+providers:
+  - name: 'Falco Security Dashboards'
+    orgId: 1
+    folder: 'Falco Security'
+    folderUid: 'falco-security'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/loki

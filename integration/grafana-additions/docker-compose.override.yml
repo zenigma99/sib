@@ -1,0 +1,43 @@
+# ==============================================
+# Grafana Stack Additions for Falco Integration
+# ==============================================
+# Merge these volume mounts into your existing Grafana service.
+# This adds the Loki datasource and Falco dashboard provisioning.
+# ==============================================
+#
+# Add these volumes to your existing grafana service:
+#
+#   grafana:
+#     volumes:
+#       # ... your existing volumes ...
+#       - ./provisioning/datasources/falco-loki.yml:/etc/grafana/provisioning/datasources/falco-loki.yml:ro
+#       - ./provisioning/dashboards/falco-dashboards.yml:/etc/grafana/provisioning/dashboards/falco-dashboards.yml:ro
+#       - ./provisioning/dashboards/loki:/etc/grafana/provisioning/dashboards/loki:ro
+#
+# If you already have a Loki datasource in Grafana, make sure its uid is "loki"
+# (the dashboards reference this uid). You can set this in Grafana UI:
+# Configuration > Data Sources > Loki > Settings > scroll to bottom > UID field.
+#
+# ==============================================
+# Loki configuration update
+# ==============================================
+# Your existing Loki service needs to accept connections from your Falco hosts.
+# It's already bound to your Tailscale IP (100.91.135.128:3100) which is correct.
+#
+# Replace your Loki config with the improved version:
+#   cp config/loki/local-config.yaml /path/to/your/grafana-stack/config/loki/local-config.yaml
+#
+# ==============================================
+# Prometheus scrape config addition
+# ==============================================
+# Add this job to your existing prometheus.yml to scrape Falcosidekick metrics:
+#
+#   - job_name: 'falcosidekick'
+#     static_configs:
+#       - targets: ['TAILSCALE_IP_HOST1:2801', 'TAILSCALE_IP_HOST2:2801', 'TAILSCALE_IP_HOST3:2801']
+#     metrics_path: '/metrics'
+#
+# Note: For this to work, you'd need to expose Falcosidekick port 2801 on the
+# Tailscale interface instead of 127.0.0.1. Update your Falco stack compose:
+#   ports:
+#     - "TAILSCALE_IP:2801:2801"

@@ -1,0 +1,100 @@
+# ==============================================
+# Falco Stack - Updated for Loki Integration
+# ==============================================
+# Deploy this on EACH of your 3 hosts.
+# Replace TAILSCALE_IP_OF_GRAFANA_HOST with your central Grafana host's Tailscale IP (e.g., 100.91.135.128)
+# Replace MY_HOSTNAME with the hostname of this specific host (e.g., host-01, host-02, host-03)
+# ==============================================
+
+version: '3.9'
+
+services:
+  falco:
+    image: falcosecurity/falco:latest
+    container_name: falco
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - /sys/kernel/debug:/sys/kernel/debug:ro
+      - /etc:/host/etc:ro
+      - ./falco.yaml:/etc/falco/falco.yaml:ro
+      - ./falco_rules.local.yaml:/etc/falco/falco_rules.local.yaml:ro
+      # Add the custom rules from sib:
+      - ./custom_rules.yaml:/etc/falco/rules.d/custom_rules.yaml:ro
+    environment:
+      - HOST_ROOT=/host
+      - FALCOCTL_DRIVER_NAME=falco
+      - FALCOCTL_DRIVER_TYPE=modern_ebpf
+    networks:
+      - private
+
+  falcosidekick:
+    image: falcosecurity/falcosidekick:2.29.0
+    container_name: falcosidekick
+    restart: unless-stopped
+    depends_on:
+      - falco
+    extra_hosts:
+      - "loki-central:TAILSCALE_IP_OF_GRAFANA_HOST"     # <-- CHANGE THIS
+      - "victoriametrics:TAILSCALE_IP_OF_GRAFANA_HOST"   # <-- CHANGE THIS
+    environment:
+      - WEBUI_URL=http://falcosidekick-ui:2802
+      #
+      # ============================================
+      # KEY CHANGE: Add Loki output for event data
+      # ============================================
+      # This sends the FULL event data (rule, priority, output, etc.) as structured logs to Loki.
+      # This is what powers the Grafana dashboards.
+      #
+      - LOKI_HOSTPORT=http://loki-central:3100
+      - LOKI_MINIMUMPRIORITY=debug
+      #
+      # Keep VictoriaMetrics for Prometheus-style metrics (alert counters, etc.)
+      # This is separate from the event data - it sends metrics like falcosidekick_alerts_total
+      #
+      - VICTORIAMETRICS_ENABLED=true
+      - VICTORIAMETRICS_URL=http://victoriametrics:8428/api/v1/write
+      - VICTORIAMETRICS_MINIMUMPRIORITY=debug
+      #
+      # Debug for initial troubleshooting (set to false once working)
+      - DEBUG=true
+    ports:
+      - "127.0.0.1:2801:2801"
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:2801/ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pangolin
+      - private
+
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: falco-redis
+    restart: unless-stopped
+    networks:
+      - private
+
+  falcosidekick-ui:
+    image: falcosecurity/falcosidekick-ui:2.2.0
+    container_name: falcosidekick-ui
+    restart: unless-stopped
+    depends_on:
+      - falcosidekick
+      - redis
+    environment:
+      - FALCOSIDEKICK_UI_REDIS_URL=redis:6379
+    ports:
+      - "2802:2802"
+    networks:
+      - pangolin
+      - private
+
+networks:
+  pangolin:
+    external: true
+  private:
+    external: true
