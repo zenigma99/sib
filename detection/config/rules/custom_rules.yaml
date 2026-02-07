@@ -734,7 +734,7 @@
     spawned_process and
     (proc.name = "env" or
      proc.name = "printenv" or
-     (proc.name = "cat" and proc.cmdline contains "/proc/") and proc.cmdline contains "/environ") or
+     (proc.name = "cat" and proc.cmdline contains "/proc/" and proc.cmdline contains "/environ") or
      proc.cmdline contains "set | grep")
   output: >
     Environment enumeration detected 
