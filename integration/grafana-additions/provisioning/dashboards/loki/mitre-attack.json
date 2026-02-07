@@ -296,7 +296,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_initial_access\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_initial_access.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -363,7 +363,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_execution|T1059\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_execution.*|.*T1059.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -430,7 +430,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_persistence\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_persistence.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -497,7 +497,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_privilege_escalation\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_privilege_escalation.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -564,7 +564,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_defense_evasion\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_defense_evasion.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -631,7 +631,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_credential_access\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_credential_access.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -698,7 +698,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_discovery\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_discovery.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -765,7 +765,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_lateral_movement\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_lateral_movement.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -832,7 +832,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_collection\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_collection.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -899,7 +899,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_command_and_control\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_command_and_control.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -966,7 +966,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_exfiltration\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_exfiltration.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
@@ -1033,7 +1033,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "count_over_time({source=\"syscall\", hostname=~\"$hostname\"} |~ \"mitre_impact\" [$__range])",
+          "expr": "count_over_time({source=\"syscall\", tags=~\".*mitre_impact.*\"} [$__range])",
           "queryType": "instant",
           "refId": "A"
         }
